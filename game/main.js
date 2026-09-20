@@ -103,11 +103,12 @@ function syncTowers(){
 function updateUI(force=false){
   const signature=[game.phase,game.wave,game.lives,game.coins,game.enemies.length,game.spawned,selected].join(':');if(!force&&signature===lastUI)return;lastUI=signature;
   $('lives').textContent=game.lives;$('coins').textContent=game.coins;
-  const displayHour=game.phase==='won'?6:game.phase==='build'?game.wave:Math.max(0,game.wave-1);
+  const displayPhase=game.phase==='paused'?priorPhase:game.phase;
+  const displayHour=displayPhase==='won'?6:displayPhase==='build'?game.wave:Math.max(0,game.wave-1);
   $('hour').innerHTML=`${displayHour===0?'12':String(displayHour).padStart(2,'0')}:00 <span>AM</span>`;
-  $('hour-label').textContent=game.phase==='won'?'MORNING HAS ARRIVED':game.phase==='wave'?'KEEP THE LIGHT BURNING':'A MOMENT TO PREPARE';
-  [...$('clock-dots').children].forEach((d,i)=>{d.className=i<game.wave-(game.phase==='wave'?1:0)?'done':i===game.wave-1?'active':'';});
-  const fighting=game.phase==='wave';$('wave-kicker').textContent=fighting?`HOUR ${game.wave} OF 6 · THE TOYS MARCH ON`:game.wave?`HOUR ${game.wave} SURVIVED · +${game.lastReward} BRASS`:'THE CURTAIN IS UP';
+  $('hour-label').textContent=displayPhase==='won'?'MORNING HAS ARRIVED':displayPhase==='wave'?'KEEP THE LIGHT BURNING':'A MOMENT TO PREPARE';
+  [...$('clock-dots').children].forEach((d,i)=>{d.className=i<game.wave-(displayPhase==='wave'?1:0)?'done':i===game.wave-1?'active':'';});
+  const fighting=displayPhase==='wave';$('wave-kicker').textContent=fighting?`HOUR ${game.wave} OF 6 · THE TOYS MARCH ON`:game.wave?`HOUR ${game.wave} SURVIVED · +${game.lastReward} BRASS`:'THE CURTAIN IS UP';
   $('wave-title').textContent=fighting?['','A rustle in the wings.','There is something inside.','The music turns strange.','No one is sleeping.','Just a little longer.','The last dark hour.'][game.wave]:game.wave?'Take a breath. Wind your toys.':'Make yourself at home.';
   $('wave-hint').textContent=fighting?`${game.enemies.length} toys on stage · ${Math.max(0,4+game.wave*2-game.spawned)} still in the wings`:'Tap a brass socket to place or upgrade a toy.';
   $('wave-count').textContent=`${6-game.wave} hours until morning`;
