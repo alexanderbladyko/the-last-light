@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#141920"><title>The Last Light — a haunted toy theatre</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%23141920'/%3E%3Cpath d='M24 5L29 18 41 24 29 30 24 43 19 30 7 24 19 18Z' fill='%23d7b477'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+</head>
+<body>
+  <main id="app">
+    <div id="stage" aria-label="Toy theatre. Drag the floor to move your lantern."></div>
+    <div class="vignette" aria-hidden="true"></div>
+    <header class="hud">
+      <div class="brand"><span class="brand-star">✦</span><div><span class="eyebrow">THE MIDNIGHT PLAYHOUSE</span><h1>The Last Light</h1></div></div>
+      <div class="night-clock"><span class="eyebrow" id="hour-label">BEFORE THE FIRST BELL</span><div id="hour">12:00 <span>AM</span></div><div id="clock-dots" aria-label="Six hours until dawn"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="resources"><div class="resource"><span class="resource-icon">♧</span><div><b id="lives">12</b><span>LIGHT</span></div></div><div class="resource"><span class="resource-icon coin">✧</span><div><b id="coins">76</b><span>BRASS</span></div></div><button id="sound" class="icon-button" aria-label="Mute sound" title="Sound">♫</button><button id="pause" class="icon-button" aria-label="Pause game" title="Pause (P)">Ⅱ</button></div>
+    </header>
+    <div class="stage-caption"><span class="caption-line"></span><span>ACT I <i>·</i> THE TOYS ARE AWAKE</span><span class="caption-line"></span></div>
+    <div id="socket-labels" hidden></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="play-ui" hidden>
+      <aside class="light-note"><span class="light-symbol">☼</span><div><strong>A little light. A little danger.</strong><span>Your light wakes <em>every</em> toy. Friends fire faster.<br>Enemies move faster, too.</span></div></aside>
+      <div id="stick" aria-label="Drag to move the lantern" role="application"><span id="stick-knob"></span><span class="stick-caption">LANTERN</span></div>
+      <section id="workbench" class="workbench">
+        <div class="wave-info"><span class="eyebrow" id="wave-kicker">THE CURTAIN IS UP</span><strong id="wave-title">Make yourself at home.</strong><span id="wave-hint">Tap a brass socket to place or upgrade a toy.</span></div>
+        <div class="workbench-end"><span id="wave-count">6 hours until morning</span><button id="next-wave" class="primary">Begin midnight <span>→</span></button></div>
+      </section>
+      <section id="selection" class="selection" hidden aria-label="Toy workbench">
+        <div class="selection-heading"><div><span class="eyebrow" id="selected-kicker">EMPTY SOCKET</span><h2 id="selected-title">Give it a little company.</h2></div><button id="close-selection" class="icon-button" aria-label="Close toy workbench">×</button></div>
+        <div id="choices" class="choices"></div><div id="selection-footer"></div>
+      </section>
+      <div class="control-note"><span>DRAG THE STAGE</span> to move your light <i>·</i> <span>WASD / ARROWS</span> also work <i>·</i> <span>P</span> pause</div>
+    </div>
+    <section id="intro" class="veil" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+      <div class="ticket"><div class="ticket-top"><span>ADMIT ONE</span><span>✦</span><span>MIDNIGHT — DAWN</span></div><span class="eyebrow">A HAUNTED TOY THEATRE</span><h2 id="intro-title">The Last<br><em>Light</em><span>✦</span></h2><p>The toys wake at midnight.<br>Keep the theatre glowing until dawn.</p><div class="ticket-rule"></div><ol><li><b>01</b><span>Build peculiar toys.<br><small>Tap brass sockets. Choose their upgrades.</small></span></li><li><b>02</b><span>Move your little lantern.<br><small>Its glow speeds up friends <em>and</em> foes.</small></span></li><li><b>03</b><span>Survive six strange hours.<br><small>Broken dolls have smaller dolls inside.</small></span></li></ol><button id="startb" class="primary" disabled>Opening the playhouse…</button><span class="ticket-foot">A SHORT NIGHT OF BEAUTIFULLY BAD TOYS</span></div>
+    </section>
+    <section id="pause-screen" class="veil" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title"><div class="small-ticket"><span class="eyebrow">INTERMISSION</span><h2 id="pause-title">Hold that thought.</h2><p>Even haunted toys need a little quiet.</p><button id="resume" class="primary">Back to the theatre →</button><button id="restart-pause" class="text-button">Start a new night</button></div></section>
+    <section id="ending" class="veil" hidden role="dialog" aria-modal="true" aria-labelledby="end-title"><div class="small-ticket"><span class="eyebrow" id="end-kicker">THE MORNING AFTER</span><h2 id="end-title">Here comes the sun.</h2><p id="end-copy"></p><div id="end-stats"></div><button id="restart" class="primary">One more night →</button></div></section>
+    <div id="fatal" hidden role="alert"></div>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body></html>
