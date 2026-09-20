@@ -79,3 +79,14 @@ The first browser audio check caught the native timer's receiver requirement: pa
 Volume choices of 34% music / 44% effects survived a reload; the test restored the defaults of 70% / 80%. The compact portrait intermission dialog displays all controls without clipping. The game still uses the original tower prices, waves and simulation rules.
 
 Asset contracts pass with 21,968 unique triangles and approximately 2.21 MB in the game directory. Syntax checks and the standalone build pass. Physical-device touch, iOS interruptions/silent-mode behavior, Android speaker playback, thermal performance, notch/browser-bar behavior on hardware, mobile 4G transfer timing and the official public-URL jam gate remain unverified. No deployment or submission was made in this pass.
+
+
+## Atmospheric score revision — September 20, 2026
+
+Replaced the bright, regularly pulsing waltz with “Beneath the Boards” after the user's listening feedback. The new composition is an eight-phrase, approximately 74-second ambient loop at an internal 52 BPM scheduling grid. Low fundamentals have quiet upper harmonics so the body of the sound is not entirely dependent on sub-bass playback. Slow 2–2.6 second attacks, slightly detuned sustained tones, sparse lower bells and a generated 3.2-second stereo room carry the atmosphere. Regular accompaniment and high mechanical ticks were removed. Ghost and late-hour layers remain subdued; dawn and defeat have sustained, finite endings. Existing toy effects keep their rapid attacks.
+
+The audio scheduler, saved levels, master mute, pause and game-speed behavior remain. Resume and restoration from mute/music-zero now reintroduce the current phrase's sustained bed immediately, avoiding several seconds of silence while waiting for the next harmony. Old music voices are stopped on restoration, while effect voices keep their separate bus.
+
+`npm test` passes 33 checks. Score coverage now verifies sparse melodic events, long beds and finite endings. Added envelope and generated-stereo-room checks, plus an immediate-bed restoration test for pause, master mute and music-zero. The existing 144-second scheduler cleanup/cap test and all 23 simulation checks pass. Browser Start shows the running new score, mute changes to All sound muted, pause changes to intermission, and resume returns to Playing · Beneath the Boards. No browser errors or warnings were observed. The build and source/package comparison pass.
+
+This pass changes audio and its text only. New upgrades and monsters are recommendations for a subsequent gameplay pass. Listening preference remains the user's judgment; physical-phone speaker quality and hardware performance have not been claimed as tested.
