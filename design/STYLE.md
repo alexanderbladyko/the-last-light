@@ -11,3 +11,12 @@ Scope: one curved lane, six sockets, two defenses, nested enemies, mobile/deskto
 Recipe: https://github.com/404-Repo/404-game-recipe (read GAME.md, 404.md, asset contract and traps). Agent-written geometry from the reference; compare three construction variants per asset. Keep code history and evidence. No copied reference-game assets or code.
 
 Acceptance: real Start and restart work; light moves with pointer/touch and keyboard; light boosts both sides; doll shells release faster smaller dolls; top/music upgrades alter mechanics; clear win/loss; pause freezes game; portrait controls remain reachable; no runtime errors or remote runtime dependencies.
+
+
+## Presentation pass — September 20
+
+Keep the same toy designs and palette. Add wear in the material shader after the recipe loader merges the geometry; grain fades at small screen sizes to avoid aliasing. Keep the surrounding floor clean and dark. Warm point lights and footlight glows sit against a cooler violet fill, with a slow dawn transition. The 64 px radial glow texture is drawn at runtime; there are no shipped raster assets.
+
+Movement conveys construction: a short compression before each hop, a wooden wobble on impact, two curved pieces when a doll breaks. Upgrade decoration is driven by the existing simulation state, including actual sleep and the invitation's strong slow. It does not change attack ranges or rules. Circling miniature tops are decorative; the wide-orbit damage remains an area sweep.
+
+The selected doll model now has an uneven smile, scarf knot and painted apron dots. Candidate gallery files preserve the original selection exercise; the current shipping models in `game/assets/` include this pass. The original candidate generator is provenance, not a build step, and would overwrite these later model edits if rerun.

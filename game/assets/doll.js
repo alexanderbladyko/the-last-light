@@ -13,5 +13,10 @@ export default function generate(THREE){
 
 profile([[0,0],[.3,0],[.43,.12],[.48,.36],[.44,.59],[.31,.78],[.29,1.02],[.19,1.2],[0,1.25]],plum);cyl(.416,.37,.12,coral,0,.105,0);ring(.455,.018,brass,0,.48,0);
 const face=ball(.205,cream,0,1.005,.215);face.scale.set(.92,1.06,.45);for(const x of [-.072,.072]){const eye=ball(.025,black,x,1.035,.308);eye.scale.z=.42;const cheek=ball(.039,coral,x*1.5,.963,.304);cheek.scale.z=.24;}star(.105,brass,0,.43,.446);for(const x of [-.21,.21]){const petal=ball(.085,coral,x,.3,.38);petal.scale.set(.38,1,.18);petal.rotation.z=-x*2;}ring(.287,.012,brass,0,.79,0);
+// Crooked painted apron, little scarf and uneven face: flaws are part of the toy.
+const nose=ball(.027,wood,.006,1.003,.316);nose.scale.set(.6,.85,.5);
+const mouth=add(new THREE.TorusGeometry(.031,.007,4,12,Math.PI),plum,.006,.962,.309);mouth.rotation.z=Math.PI+.12;
+for(let i=0;i<5;i++){const a=-.8+i*.4;const dot=ball(.023,cream,Math.sin(a)*.35,.19+Math.cos(a)*.03,Math.cos(a)*.41);dot.scale.z=.3;}
+for(const side of [-1,1]){const scarf=ball(.06,coral,side*.055,.79,.282);scarf.scale.set(1.1,.48,.26);scarf.rotation.z=side*.4;}
 return g;
 }

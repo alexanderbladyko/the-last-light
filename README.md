@@ -18,7 +18,7 @@ First playable built September 20, 2026. Local development has no paid services 
 - Drag on the floor to move the lantern, use WASD / arrows, or drag the on-screen joystick in narrow layouts.
 - The light doubles top firing speed and strengthens music, but makes enemies move 65% faster. Positioning matters.
 - Ring the bell to start each hour. Survive six waves; keep at least one of the stage light's 12 points.
-- P or the pause button opens intermission. The 1× / 2× button speeds up combat. Sound starts after the first gesture and can be muted on desktop.
+- P or the pause button opens intermission. The 1× / 2× button speeds up combat. Sound starts after the first gesture and can be muted on desktop and phone.
 
 ## Defenses
 
@@ -27,6 +27,12 @@ Spinning top (36 brass): area damage. Upgrade for 42 brass to **Bowling top**, a
 Music box (42 brass): slows toys in range. Upgrade for 42 brass to **Lullaby**, which sleeps toys after uninterrupted listening until they take damage, or **Invitation**, a wider field that strongly slows toys trying to leave after passing the box. The prototype uses a tether effect rather than route-changing attraction.
 
 Breaking a large matryoshka releases a smaller, faster one. Each shell earns brass. Cleared waves also award brass. Packing a toy away refunds 65% of its purchase and upgrade cost.
+
+## Presentation pass
+
+The theatre now has warm lantern and footlight glows, a faint light shaft, drifting dust, hanging stars, procedural wood grain and worn paint. Dolls anticipate their hops, squash on impact and shed two tumbling shell pieces. Wide orbit adds two circling miniature tops; bowling has brass chevrons; lullaby has floating moons; invitation draws gold threads to toys being held back. Music boxes release floating notes, and a quiet synthesized music-box motif plays after Start. The lighting gradually warms toward dawn.
+
+All of this is generated locally. No external images, model downloads, paid services or new dependencies were added. Game rules and upgrade prices are unchanged.
 
 ## Verify and build
 

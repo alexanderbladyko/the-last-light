@@ -28,3 +28,17 @@ A full run at the 390 × 844 portrait viewport used only the visible controls: p
 Pause was checked mid-wave: position, kills, coins and enemy count stayed unchanged while frames continued rendering. Restart after dawn returned to midnight with 12 light, 76 brass, no enemies and only the two starter defenses. A pause-display issue found during the check was fixed: hour and wave wording now remain stable during intermission.
 
 The separately served `dist/` build was opened at its own URL prefix on the saved project server. Start and pause worked, and its console contained no warnings or errors. Physical-phone performance and the official 4G/touch gate remain unverified.
+
+## Presentation pass validation — September 20, 2026
+
+The existing 15 simulation checks passed; the rules, costs and balance in `sim.js` were unchanged. Asset checks passed, with 21,412 triangles across the five unique generated assets and a 2.18 MB standalone game source folder. Main and presentation modules passed syntax checks. `npm run build` succeeded, and the shipped main, presentation, CSS and doll files matched the tested source.
+
+Browser testing used 390 × 844 portrait and 1280 × 720 desktop views. The initial wood pattern aliased on the small display; its frequency was lowered and its contrast now fades using screen-space derivatives. Phone mute is reachable and toggles its accessible label. A joystick drag moved the lantern from [-1, 0] to [-0.16, -0.86], over one metre, with the revised camera.
+
+A complete run used the visible controls, with all four upgrade branches present: orbit at sockets 1, 5 and 6, bowling at socket 2, lullaby at socket 3 and invitation at socket 4. Most combat used 2×; hour four used 1×. Dolls hop and recoil, shell pieces scatter, miniature tops orbit, notes drift, sleeping dolls show moons and the invitation shows threads to held toys. The run reached dawn with 7 light and 191 shells broken. This different defense layout is not a comparison against the previous run's balance.
+
+During hour six, a sample with 9 enemies reported 211 draw calls and 108,825 triangles. These are observed samples on the local desktop browser, not a peak guarantee or a physical-phone benchmark. No console warnings or errors were observed in the game or in a fresh standalone `dist/` Start check.
+
+Pause preserved a state with 4 enemies, 95 broken shells, 63 brass and the same lantern position while the frame count advanced from 22,620 to 23,940; draw calls and triangle counts also stayed fixed. Restart after dawn cleared upgrade decoration, particles, notes and enemies, returning to 12 light, 76 brass and the two starter defenses (57 calls / 32,402 triangles). The warm dawn lighting returned to midnight.
+
+The official public-URL gate and physical-device performance remain unverified. No deployment or entry submission was made in this pass.
