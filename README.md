@@ -18,6 +18,7 @@ First playable built September 20, 2026. Local development has no paid services 
 - Drag on the floor to move the lantern, use WASD / arrows, or drag the on-screen joystick in narrow layouts.
 - The light doubles top firing speed and strengthens music, but makes enemies move 65% faster. Positioning matters.
 - Read the next-wave roster before ringing the bell. Paper ghosts join from hour two. Shine your moving lantern on them near a spinning top: they are immune to damage in darkness.
+- After hours 1, 3 and 5, choose one free night gift. Mix gifts or strengthen the same gift up to rank III. You can plan your defenses first; the bell waits for your choice.
 - Ring the bell to start each hour. Survive six waves; keep at least one of the stage light's 12 points.
 - P or the pause button opens intermission. The 1× / 2× button speeds up combat. The score starts with Raise the curtain. Tap ♫ to mute everything, or adjust Music and Toy sounds separately in intermission. The mix is saved on this browser.
 
@@ -27,9 +28,21 @@ Spinning top (36 brass): area damage. Upgrade for 42 brass to **Bowling top**, a
 
 Music box (42 brass): slows toys in range. Upgrade for 42 brass to **Lullaby**, which sleeps toys after uninterrupted listening until they take damage, or **Invitation**, a wider field that strongly slows toys trying to leave after passing the box. The prototype uses a tether effect rather than route-changing attraction.
 
-Paper ghosts unfold and reveal their faces inside the lantern radius. Tops ignore hidden ghosts; an airborne bowling top can hurt one only while it is exposed. Music slows and sleeps ghosts even in darkness. A ghost gives 7 brass, has no nested doll, and costs 2 light if it escapes.
+Paper ghosts unfold and reveal their faces inside the lantern radius or an active Ghostlight pool. Tops ignore hidden ghosts; an airborne bowling top can hurt one only while it is exposed. Music slows and sleeps ghosts even in darkness. A ghost gives 7 brass, has no nested doll, and costs 2 light if it escapes.
 
 Breaking a large matryoshka releases a smaller, faster one. Each shell earns brass. Cleared waves also award brass. Packing a toy away refunds 65% of its purchase and upgrade cost.
+
+## Night gifts
+
+Three free choices per night, offered after hours **1, 3 and 5**. A gift applies immediately and lasts until restart. Each offer presents Encore, Overwound and Ghostlight; picking an owned gift raises its rank. These are separate from individual toy branches and cost no brass. Selected gifts stay visible in the workbench and on the ending screen.
+
+| Gift | Rank I | Rank II | Rank III | Rule |
+| --- | --- | --- | --- | --- |
+| Encore | 6 splash damage | 10 splash damage | 14 splash damage | Striking a sleeper creates a shockwave within 2.25 m. Pair with Lullaby. |
+| Overwound | 40% faster / 10% less reach | 80% faster / 20% less reach | 120% faster / 30% less reach | Affects all current and future tops, including bowling flight. |
+| Ghostlight | 1.6 m radius / 3 sec | 1.9 m radius / 4 sec | 2.2 m radius / 5 sec | Defeated ghosts leave a temporary light pool. |
+
+Encore still respects ghost immunity. Splash wakes nearby sleepers without triggering more shockwaves; a broken source doll's newborn is excluded from that shockwave. Ghostlight reveals ghosts and applies the same defense/enemy acceleration as the lantern. Overlapping lights do not multiply the boost. Pools expire during combat and preparation, freeze during pause, and are cleared by restart. At most eight pools are retained.
 
 ## Presentation pass
 
@@ -48,7 +61,7 @@ Phone layouts support compact portrait and short landscape screens, with larger 
 ## Verify and build
 
 ```sh
-npm test        # 33 gameplay and audio checks
+npm test        # 48 gameplay, gift and audio checks
 npm run check   # asset contracts, triangle counts, folder size
 npm run build   # produces dist/ with local Three.js included
 ```
@@ -62,6 +75,6 @@ The standalone game is `dist/`. Serve it as a static folder, including under a U
 - [Three candidates per asset and selection rationale](design/ASSET-SELECTION.md); open `/design/gallery.html` in the local server to compare four views.
 - [Playtest evidence and remaining limitations](design/PLAYTEST.md)
 
-The current playable contains one stage, two defense types, nested dolls and paper ghosts. Additional acts, save/resume and broader balance testing remain future work.
+The current playable contains one stage, two defense types, nested dolls, paper ghosts and three gifts with three ranks each. The Tin Drummer is a proposed next enemy. Additional acts, save/resume and broader balance testing remain future work.
 
 Third-party code: Three.js 0.183.2 and its BufferGeometryUtils (MIT, `game/vendor/THREE-LICENSE.txt`); the unmodified 404 recipe asset loader (Apache-2.0, `design/RECIPE-LICENSE`). All toy modules, stage, game rules, UI, audio and input code were written for this game. The reference board was generated with the built-in imagegen tool and is not shipped in the game.

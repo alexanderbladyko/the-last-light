@@ -90,3 +90,29 @@ The audio scheduler, saved levels, master mute, pause and game-speed behavior re
 `npm test` passes 33 checks. Score coverage now verifies sparse melodic events, long beds and finite endings. Added envelope and generated-stereo-room checks, plus an immediate-bed restoration test for pause, master mute and music-zero. The existing 144-second scheduler cleanup/cap test and all 23 simulation checks pass. Browser Start shows the running new score, mute changes to All sound muted, pause changes to intermission, and resume returns to Playing · Beneath the Boards. No browser errors or warnings were observed. The build and source/package comparison pass.
 
 This pass changes audio and its text only. New upgrades and monsters are recommendations for a subsequent gameplay pass. Listening preference remains the user's judgment; physical-phone speaker quality and hardware performance have not been claimed as tested.
+
+
+## Night gifts — September 20, 2026
+
+Added a free gift choice after hours 1, 3 and 5. All three gifts remain available at each offer, with repeat selections raising their rank up to III. Choices are atomic, recorded per wave and rejected before an offer, while paused, after an already claimed offer, or for invalid IDs. The next wave waits for the pending choice; the player can close the cards to buy/upgrade defenses and return later. Restart clears gifts, history, counters and pools.
+
+Encore deals 6 / 10 / 14 splash damage within 2.25 m when a sleeping toy takes a real hit. It respects hidden-ghost immunity, triggers on lethal wake hits, excludes the source's newborn shell, and wakes neighboring sleepers without recursively creating more Encores. Overwound gives 40 / 80 / 120% faster attacks with 10 / 20 / 30% less top range and bowling flight. Music range is unchanged. Ghostlight gives defeated ghosts a 1.6 / 1.9 / 2.2 m light pool for 3 / 4 / 5 seconds. Pools reveal ghosts, accelerate both sides, expire during preparation, freeze on pause and are capped at eight. Overlap does not stack the light boost.
+
+All **48 tests pass**: 33 existing gameplay/audio checks and 15 gift checks, including actual Lullaby/Encore activation, real attack cadence and lost edge targets, immunity, nested shells, pool lifecycle, cross-gift interactions and complete nights. The old baseline comparison now takes unused Encore gifts with no Lullaby, preserving its original strategy comparison. An initial 30%-per-rank Overwound bonus lost the tested final hour; its final 40% bonus makes that specialized strategy viable while retaining the reach tradeoff.
+
+Economy-valid full-night simulations use normal purchases and movement, choosing a new lantern destination every 1.5 seconds. The three specialized builds and a mixed build all reach dawn with all 20 ghosts defeated:
+
+| Choices | Light remaining | Encore bursts | Pools created |
+| --- | ---: | ---: | ---: |
+| Encore III, with Lullaby | 2 | 54 | 0 |
+| Overwound III | 2 | 0 | 0 |
+| Ghostlight III | 11 | 0 | 20 |
+| Ghostlight I + Encore I + Overwound I | 3 | 64 | 20 |
+
+These are outcomes for the tested purchase/movement policies, not a claim that all layouts or stationary play win. Balance remains open to human playtesting.
+
+Browser play used the visible controls. Hour one opened the offer automatically; Plan my defenses first preserved it, and the bell reopened it. Choosing Ghostlight left brass unchanged and added its badge. Hours two and three created five pools from five defeated ghosts. The hour-three offer showed Ghostlight II with its stronger values; Encore I was selected with a purchased Lullaby already present. Moving the lantern to the right-hand ghosts produced an Encore and another pool. That manual run cleared hour four with 6 light, 6 ghosts defeated, 1 Encore and 6 pools created; three ghosts escaped after late lantern movement. No browser warnings or errors were observed.
+
+The final standalone build was separately opened at `/dist/`. Its complete card set and planning button fit at **360 × 640** and **844 × 390**, verified after rotation settled. The compact layout keeps effect and tradeoff text visible. Escape defers the offer; P opens intermission without consuming it; resume leaves it available. Choosing Overwound I showed the final 40%/10% text, preserved 89 brass, and changed the upgraded starter top's reported/displayed range from 3.8 to 3.42 m while the music box stayed at 3.05 m. The prior source play also exercised the persistent gift strip and controls at 390 × 844. Restart in the final standalone build cleared the ribbon, ranks, pending offer, history, counters and pools, restoring 12 light, 76 brass and the original 2.65 m / 3.05 m starter ranges (57 draws / 32,402 triangles).
+
+Source syntax, asset contracts and the standalone build pass. Six model types still total 21,968 unique triangles; the game folder is about 2.22 MB. Gift effects add constructor-based rings/discs/motes, no imported meshes, external assets or dependencies. Browser draw samples stayed below the jam budget, but physical-phone performance and the official public-URL gate remain unverified. This pass implements the gifts; the Tin Drummer remains a proposed next step.

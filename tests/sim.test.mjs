@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGame,startGame,beginWave,buildTower,upgradeTower,stepGame,spawnEnemy,damageEnemy,moveLantern,pointAt,PATH,PATH_LENGTH,SOCKETS,waveInfo,canDamageEnemy} from '../game/sim.js';
+import {createGame,startGame,beginWave,buildTower,upgradeTower,stepGame,spawnEnemy,damageEnemy,moveLantern,pointAt,PATH,PATH_LENGTH,SOCKETS,waveInfo,canDamageEnemy,chooseNightGift} from '../game/sim.js';
 const advance=(g,seconds)=>{for(let i=0;i<seconds*60;i++){stepGame(g,1/60);g.events.length=0;}};
 function active(){const g=createGame();startGame(g);beginWave(g);g.spawned=6;g.spawnClock=999;return g;}
 test('route begins and ends at the displayed gates',()=>{assert.deepEqual([pointAt(0).x,pointAt(0).z],PATH[0]);assert.deepEqual([pointAt(PATH_LENGTH).x,pointAt(PATH_LENGTH).z],PATH.at(-1));});
@@ -22,6 +22,7 @@ test('the starter layout loses; investing and following ghosts can reach dawn',(
     const g=createGame();startGame(g);if(mode==='ambush')Object.assign(g.lantern,{x:-3.7,z:1.07,tx:-3.7,tz:1.07});if(mode!=='starter'){buildTower(g,0,'top');buildTower(g,4,'top');}
     let ticks=0;while(!['won','lost'].includes(g.phase)&&ticks<36000){
       if(g.phase==='build'){
+        if(g.giftOffer)chooseNightGift(g,'encore'); // This policy has no Lullaby, preserving the baseline comparison.
         if(mode!=='starter'){for(const s of [0,1,4])upgradeTower(g,s,s===1?'bowling':'orbit');upgradeTower(g,3,'invitation');for(const s of [5,2])buildTower(g,s,'top');for(const s of [5,2])upgradeTower(g,s,'orbit');}
         beginWave(g);
       }

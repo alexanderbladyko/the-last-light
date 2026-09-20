@@ -27,3 +27,12 @@ The selected doll model now has an uneven smile, scarf knot and painted apron do
 A sixth procedural asset joins the toy cast: a torn, folded sheet with a surprised face. It floats with a small sway, folds into a blue silhouette in darkness, and opens into warm paper inside the moving lantern radius. Its face follows the camera horizontally so the reveal reads on the small stage. Defeat scatters paper scraps. The live hidden/exposed count uses the same lantern test as combat, while the folded appearance eases over a fraction of a second.
 
 Ghosts join from hour two, with a shared roster driving both preview text and actual arrivals. Music affects them in darkness; damage requires lantern exposure. The stage lamps are decorative: only the moving lantern opens a ghost. No second lane, new upgrade branch or rig was added.
+
+
+## Night gifts — gameplay pass
+
+Three paper cards appear after hours 1, 3 and 5. Each offers a new gift or the complete stronger version of an owned gift. They are free and last for the current night. The player can close the offer to plan defenses, then return through the bell button; a pending gift prevents advancing the wave. Cards fit compact portrait and landscape screens, and owned gift names/ranks remain visible.
+
+Encore turns a Lullaby wake into a lilac floor pulse with sparks. Splash cannot trigger another Encore, and hidden ghosts stay immune. Overwound increases top rotation and attack cadence while reducing actual range; the selected tower's range ring uses the simulation value. Ghostlight adds a pale teal floor disc, rim and drifting central mote at a defeated ghost's position. Their radius and fade are driven by the real pool state. These effects use only Three.js constructor geometry and existing generated materials; there is no new imported model or rig.
+
+Ghostlight extends the earlier light rule: both the moving lantern and a temporary pool reveal ghosts, boost defenses and accelerate enemies. Decorative stage lamps remain decorative. The original six waves, tower prices and asset models are unchanged in this pass. A Tin Drummer remains a separate proposed gameplay addition.

@@ -78,3 +78,34 @@ body:has(#ghost-cue:not([hidden])) #toast{top:216px}
   .audio-settings{grid-column:2;grid-row:1 / 6;margin:0;padding:0 0 0 22px;border-block:0;border-left:1px solid var(--line);align-self:center}
   #resume{grid-column:1;grid-row:4;margin-top:12px}#restart-pause{grid-column:1;grid-row:5;margin-top:4px}
 }
+
+/* A night gift is a free, lasting choice; rank cards show the complete new effect. */
+.gift-ticket{width:820px;max-width:100%;max-height:100%;overflow-y:auto;overscroll-behavior:contain;padding:30px;background:linear-gradient(140deg,#263438,#1a242e);border:1px solid #d7b47777;box-shadow:0 24px 100px #0009;border-radius:4px;text-align:center}
+.gift-ticket h2{font-size:37px;margin:12px 0}.gift-ticket>p{font-size:12px;line-height:1.7;color:#bebda9;margin:0 0 23px}
+#gift-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.gift-card{display:flex;flex-direction:column;text-align:left;align-items:flex-start;gap:9px;border:1px solid #b6a27466;border-radius:4px;background:#1a262d;color:var(--cream);padding:20px 17px;min-width:0}
+.gift-card:hover,.gift-card:focus-visible{background:#293c40;border-color:var(--gold)}.gift-icon{font-size:36px;line-height:1;color:#b7c9b0}.gift-rank{font-size:8px;letter-spacing:1.4px;color:var(--gold)}
+.gift-card strong{font:25px Georgia,serif}.gift-copy{font-size:12px;line-height:1.6}.gift-card small{font-size:10px;line-height:1.6;color:#b1b7b2}.gift-card small.gift-warning{color:#dab5dc}
+.gift-choose{width:100%;margin-top:auto;padding-top:15px;color:var(--gold);font-size:11px}.gift-choose i{float:right;font-style:normal}
+.gift-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:17px}.gift-footer>span{font-size:8px;letter-spacing:1.2px;color:var(--muted)}.gift-footer .text-button{min-height:44px}
+#night-gifts{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}#night-gifts>span{padding:4px 7px;border:1px solid #a9c6ac44;border-radius:3px;color:#c0dac7;font-size:9px;white-space:nowrap}
+.winding-note{display:block;margin-top:8px;color:var(--gold)}#end-gifts{color:#b8d6c7;font-size:11px;line-height:1.7;margin-top:12px}
+@media(min-width:851px){body:has(#night-gifts:not([hidden])) .light-note{bottom:222px}body:has(#night-gifts:not([hidden])) .selection{bottom:222px}}
+@media(max-width:520px){
+  .gift-ticket{padding:20px 17px}.gift-ticket h2{font-size:28px;margin:10px 0}.gift-ticket>p{font-size:11px;margin-bottom:16px}
+  #gift-choices{grid-template-columns:1fr;gap:9px}.gift-card{position:relative;padding:13px 14px 13px 57px;gap:5px}.gift-icon{position:absolute;left:15px;top:19px;font-size:27px}
+  .gift-card strong{font-size:22px}.gift-copy{font-size:11px;line-height:1.45}.gift-card small{font-size:9px;line-height:1.4}.gift-choose{padding-top:5px;font-size:10px}.gift-rank{font-size:7px}
+  .gift-footer{flex-direction:column;gap:0;margin-top:15px}.gift-footer .text-button{margin-top:3px}#night-gifts>span{font-size:8px;padding:4px 6px}
+  body:has(#night-gifts:not([hidden])) #stick{bottom:239px}
+}
+@media(max-height:500px) and (orientation:landscape){
+  .gift-ticket{width:780px;padding:14px 20px}.gift-ticket h2{font-size:26px;margin:7px 0}.gift-ticket>p{font-size:10px;line-height:1.4;margin:0 0 11px}.gift-ticket>p br{display:none}
+  .gift-card{padding:11px;gap:5px}.gift-icon{font-size:22px}.gift-card strong{font-size:21px}.gift-copy{font-size:10px;line-height:1.4}.gift-card small{font-size:9px;line-height:1.4}.gift-choose{padding-top:8px;font-size:10px}.gift-footer{margin-top:7px}
+  body:has(#night-gifts:not([hidden])) #stick{bottom:145px}
+  body:has(#night-gifts:not([hidden])) .selection{bottom:12px}
+}
+@media(max-width:520px) and (max-height:700px){
+  .gift-ticket{padding:14px}.gift-ticket h2{font-size:25px;margin:8px 0}.gift-ticket>p{font-size:10px;margin:0 0 12px}
+  .gift-card{padding:10px 10px 10px 52px;gap:4px}.gift-card strong{font-size:20px}.gift-icon{left:14px;top:17px}
+  .gift-card .gift-choose{display:none}.gift-card strong:after{content:' →';font-size:15px;color:var(--gold)}.gift-footer{margin-top:8px}
+}

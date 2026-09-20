@@ -1,14 +1,16 @@
 import * as THREE from 'three';
+import {GIFT_IDS,giftInfo} from './night-gifts.js';
+import {createNightView} from './night-view.js';
 import {TheatreAudio} from './audio.js';
 import {ASSET,bakeStatic} from './assetlib.js';
 import {handmade,createPresentation} from './presentation.js';
 import {createGhostView,updateGhostView,disposeGhostView} from './ghost-view.js';
-import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight,waveInfo} from './sim.js';
+import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight,waveInfo,chooseNightGift,towerRange} from './sim.js';
 
 const $=id=>document.getElementById(id);
 let game=createGame(),priorPhase='build',selected=null,dragging=false,stickInput={x:0,z:0},accumulator=0,clock=0,frame=0,toastTimeout,playSpeed=1;
 const keys=new Set(),enemyModels=new Map(),enemyBars=new Map(),towerModels=new Map(),effects=[];
-const scene=new THREE.Scene();scene.background=new THREE.Color('#111120');scene.fog=new THREE.FogExp2('#151321',.009);
+const scene=new THREE.Scene();const nightView=createNightView(scene);scene.background=new THREE.Color('#111120');scene.fog=new THREE.FogExp2('#151321',.009);
 let renderer;
 try {renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});}catch(error){$('fatal').hidden=false;$('fatal').textContent='The playhouse needs WebGL. Please open this game in a browser with hardware acceleration enabled.';throw error;}
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.32;
@@ -85,6 +87,42 @@ function emit(x,z,count,color='#e5c78d'){
 function pulse(x,z,r,color){const o=mesh(pulseGeometry,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.35,depthWrite:false}),x,.10,z);o.rotation.x=-Math.PI/2;effects.push({mesh:o,ring:true,r,life:.42,maxLife:.42});}
 function deselect(){selected=null;$('selection').hidden=true;rangeRing.visible=false;updateUI(true);}
 function selectSocket(slot){if(!['build','wave'].includes(game.phase))return;selected=slot;game.selected=slot;$('selection').hidden=false;updateSelection();updateUI(true);}
+const rankMark=rank=>['','I','II','III'][rank];
+function closeNightOffer(){ $('night-offer').hidden=true;$('next-wave').focus(); }
+function openNightOffer(){
+  if(game.phase!=='build'||!game.giftOffer)return;
+  deselect();keys.clear();dragging=false;stickInput={x:0,z:0};$('stick-knob').style.transform='';
+  $('gift-kicker').textContent=`HOUR ${game.giftOffer} SURVIVED · GIFT ${game.giftHistory.length+1} OF 3`;
+  $('gift-choices').replaceChildren();
+  for(const id of GIFT_IDS){
+    const info=giftInfo(id,game.nightGifts[id]+1);if(!info)continue;
+    const card=document.createElement('button');card.className='gift-card';card.dataset.gift=id;
+    const needsLullaby=id==='encore'&&!game.towers.some(t=>t.branch==='lullaby');
+    card.innerHTML=`<span class="gift-icon" aria-hidden="true">${info.icon}</span><span class="gift-rank">${game.nightGifts[id]?'STRENGTHEN':'NEW GIFT'} · RANK ${rankMark(info.rank)}</span><strong>${info.name}</strong><span class="gift-copy">${info.copy}</span><small class="${needsLullaby?'gift-warning':''}">${info.note}</small><span class="gift-choose">Choose ${info.name} ${rankMark(info.rank)} <i>→</i></span>`;
+    card.onclick=()=>{if(chooseNightGift(game,id)){closeNightOffer();updateUI(true);}};
+    $('gift-choices').appendChild(card);
+  }
+  $('night-offer').hidden=false;$('gift-choices').firstElementChild?.focus();
+}
+$('gift-later').onclick=closeNightOffer;
+$('night-offer').addEventListener('keydown',e=>{
+  if(e.code==='Escape'){e.preventDefault();e.stopPropagation();closeNightOffer();return;}
+  if(e.code==='Tab'){
+    const buttons=[...$('night-offer').querySelectorAll('button:not(:disabled)')],first=buttons[0],last=buttons.at(-1);
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  }
+  if(e.code==='Space')e.stopPropagation();
+});
+function updateGiftRibbon(){
+  $('night-gifts').replaceChildren();
+  for(const id of GIFT_IDS)if(game.nightGifts[id]){
+    const info=giftInfo(id,game.nightGifts[id]),tag=document.createElement('span');
+    tag.textContent=`${info.icon} ${info.name} ${rankMark(info.rank)}`;tag.title=info.copy;
+    $('night-gifts').appendChild(tag);
+  }
+  $('night-gifts').hidden=!game.giftHistory.length;
+}
 const upgradeDetails={
   bowling:{name:'Bowling top',icon:'↗',copy:'Sends a top through a line of toys. Longer reach, slower wind-up.'},
   orbit:{name:'Wide orbit',icon:'◎',copy:'Sweeps a much wider circle. Less damage per toy, more toys at once.'},
@@ -106,7 +144,8 @@ function updateSelection(){
   if(t?.branch){const d=upgradeDetails[t.branch];$('choices').innerHTML=`<div class="upgraded-note"><span class="choice-icon">${d.icon}</span><h2>${d.name}</h2><p style="font-size:12px;line-height:1.7;color:#bfc6b6">${d.copy}</p></div>`;}
   const explanation=document.createElement('span');explanation.textContent=t?(t.branch?'A new personality. Put it to good use.':'Choose one personality. The other branch locks for this toy.'):'Toys attack on their own. Move your lantern to help them.';$('selection-footer').appendChild(explanation);
   if(t){const sell=document.createElement('button');sell.className='text-button';sell.textContent=`Pack away · recover ${Math.floor((COST[t.type]+(t.branch?UPGRADE_COST:0))*.65)} brass`;sell.onclick=()=>{sellTower(game,slot);syncTowers();updateSelection();updateUI(true);};$('selection-footer').appendChild(sell);}
-  const [x,z]=SOCKETS[slot];rangeRing.position.set(x,.07,z);const r=t?(t.type==='music'?(t.branch==='invitation'?3.8:3.05):(t.branch==='orbit'?3.8:t.branch==='bowling'?4.2:2.65)):1;rangeRing.scale.setScalar(r/2.65);rangeRing.visible=!!t;
+  if(t?.type==='top'&&game.nightGifts.overwound){const winding=document.createElement('span');winding.className='winding-note';winding.textContent=giftInfo('overwound',game.nightGifts.overwound).copy;$('selection-footer').appendChild(winding);}
+  const [x,z]=SOCKETS[slot];rangeRing.position.set(x,.07,z);const r=t?towerRange(game,t):1;rangeRing.scale.setScalar(r/2.65);rangeRing.visible=!!t;
 }
 function syncTowers(){
   for(const [id,o]of towerModels)if(!game.towers.some(t=>t.id===id)){scene.remove(o);towerModels.delete(id);}
@@ -114,7 +153,7 @@ function syncTowers(){
 }
 function updateUI(force=false){
   const ghosts=game.enemies.filter(e=>e.kind==='ghost'),litGhosts=ghosts.filter(e=>onLight(game,e)).length;
-  const signature=[ghosts.length,litGhosts,game.phase,game.wave,game.lives,game.coins,game.enemies.length,game.spawned,selected].join(':');if(!force&&signature===lastUI)return;lastUI=signature;
+  const signature=[ghosts.length,litGhosts,game.phase,game.wave,game.lives,game.coins,game.enemies.length,game.spawned,selected,game.giftOffer,...Object.values(game.nightGifts),game.ghostlights.length].join(':');if(!force&&signature===lastUI)return;lastUI=signature;
   $('lives').textContent=game.lives;$('coins').textContent=game.coins;
   const displayPhase=game.phase==='paused'?priorPhase:game.phase;
   const displayHour=displayPhase==='won'?6:displayPhase==='build'?game.wave:Math.max(0,game.wave-1);
@@ -131,20 +170,22 @@ function updateUI(force=false){
   $('ghost-cue').hidden=!fighting||!plan?.ghosts||(!ghosts.length&&!waitingGhosts);
   $('ghost-cue').classList.toggle('exposed',litGhosts>0);
   $('ghost-count').textContent=ghosts.length?`${ghosts.length-litGhosts} hidden · ${litGhosts} exposed`:'Paper ghosts in the wings';
-  $('ghost-rule').textContent='Shine your lantern on ghosts so tops can hit them.';
+  $('ghost-rule').textContent=game.nightGifts.ghostlight?'Your lantern and Ghostlight reveal ghosts. Both speed up every toy.':'Shine your lantern on ghosts so tops can hit them.';
+  if(game.ghostlights.length)$('ghost-count').textContent+=` · ${game.ghostlights.length} afterglow${game.ghostlights.length===1?'':'s'}`;
   $('wave-count').textContent=`${6-game.wave} ${6-game.wave===1?'hour':'hours'} until morning`;
-  $('next-wave').disabled=fighting||ended;$('next-wave').innerHTML=ended?'The night is over':fighting?'The night is unfolding…':`${game.wave?'Ring the next bell':'Begin midnight'} <span>→</span>`;
+  $('next-wave').disabled=fighting||ended;$('next-wave').innerHTML=ended?'The night is over':fighting?'The night is unfolding…':`${game.giftOffer?'Choose a night gift':game.wave?'Ring the next bell':'Begin midnight'} <span>→</span>`;
+  updateGiftRibbon();
   [...$('socket-labels').children].forEach((b,i)=>{const t=game.towers.find(t=>t.slot===i);b.className=`socket ${t?'occupied':'empty'} ${selected===i?'selected':''}`;b.textContent=t?(t.type==='top'?'⟳':'♫'):i+1;b.setAttribute('aria-label',`Socket ${i+1}: ${t?t.type==='top'?'spinning top':'music box':'empty'}${t?.branch?', '+t.branch:''}`);});
   if(selected!==null)updateSelection();
 }
 function start(){startGame(game);audio.setScene(game.phase,game.wave);void audio.unlock();$('intro').hidden=true;$('play-ui').hidden=false;$('socket-labels').hidden=false;syncTowers();updateUI(true);sound(392,.3);setTimeout(()=>sound(587,.35),160);notify('Two toys are ready. Add a defense, then begin midnight.');}
 function restart(){
-  presentation?.reset();dawnProgress=0;
+  presentation?.reset();nightView.reset();$('night-offer').hidden=true;dawnProgress=0;
   for(const o of enemyModels.values()){disposeGhostView(o);scene.remove(o);}enemyModels.clear();for(const o of enemyBars.values())scene.remove(o);enemyBars.clear();for(const o of towerModels.values())scene.remove(o);towerModels.clear();for(const p of effects){scene.remove(p.mesh);p.mesh.material.dispose();}effects.length=0;
   game=createGame();startGame(game);audio.restart();selected=null;keys.clear();stickInput={x:0,z:0};accumulator=0;scene.background.copy(nightColor);ambient.intensity=.88;$('ending').hidden=true;$('pause-screen').hidden=true;$('selection').hidden=true;rangeRing.visible=false;syncTowers();updateUI(true);notify('A new night. Another chance.');
 }
-function togglePause(){if(game.phase==='paused'){game.phase=priorPhase;$('pause-screen').hidden=true;lastTime=performance.now();}else if(['wave','build'].includes(game.phase)){priorPhase=game.phase;game.phase='paused';keys.clear();stickInput={x:0,z:0};$('pause-screen').hidden=false;$('resume').focus();}dragging=false;$('stick-knob').style.transform='';audio.setScene(game.phase,game.wave);updateUI(true);}
-$('startb').onclick=start;$('next-wave').onclick=()=>{if(beginWave(game)){deselect();sound(196,.65,'sine',.05);notify(game.wave===1?'Keep the glow on your defenses. Watch the dolls in its light.':game.wave===2?'Paper ghosts! Shine the lantern on them near your tops.':`Hour ${game.wave}. ${waveInfo(game.wave).ghosts} paper ghosts are coming.`);updateUI(true);}};
+function togglePause(){$('night-offer').hidden=true;if(game.phase==='paused'){game.phase=priorPhase;$('pause-screen').hidden=true;lastTime=performance.now();}else if(['wave','build'].includes(game.phase)){priorPhase=game.phase;game.phase='paused';keys.clear();stickInput={x:0,z:0};$('pause-screen').hidden=false;$('resume').focus();}dragging=false;$('stick-knob').style.transform='';audio.setScene(game.phase,game.wave);updateUI(true);}
+$('startb').onclick=start;$('next-wave').onclick=()=>{if(game.giftOffer){openNightOffer();return;}if(beginWave(game)){deselect();sound(196,.65,'sine',.05);notify(game.wave===1?'Keep the glow on your defenses. Watch the dolls in its light.':game.wave===2?'Paper ghosts! Shine the lantern on them near your tops.':`Hour ${game.wave}. ${waveInfo(game.wave).ghosts} paper ghosts are coming.`);updateUI(true);}};
 $('close-selection').onclick=deselect;$('pause').onclick=togglePause;$('resume').onclick=togglePause;$('restart').onclick=restart;$('restart-pause').onclick=restart;
 $('speed').onclick=()=>{playSpeed=playSpeed===1?2:1;$('speed').textContent=playSpeed+'×';$('speed').setAttribute('aria-label',playSpeed===1?'Play at double speed':'Play at normal speed');};
 $('sound').onclick=()=>{
@@ -165,18 +206,21 @@ addEventListener('keydown',e=>{if(e.target.matches('input'))return;if(['ArrowUp'
 addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();dragging=false;stickInput={x:0,z:0};});
 document.addEventListener('visibilitychange',()=>{audio.setHidden(document.hidden);if(document.hidden&&['wave','build'].includes(game.phase))togglePause();});
 const right=new THREE.Vector3(),forward=new THREE.Vector3();
-function moveInput(){if(!['build','wave'].includes(game.phase))return;let x=stickInput.x+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),z=stickInput.z+(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0);if(!x&&!z)return;right.setFromMatrixColumn(camera.matrixWorld,0);right.y=0;right.normalize();forward.set(camera.position.x,0,camera.position.z).normalize();moveLantern(game,game.lantern.x+(right.x*x+forward.x*z)*2,game.lantern.z+(right.z*x+forward.z*z)*2);}
+function moveInput(){if(!['build','wave'].includes(game.phase)||!$('night-offer').hidden)return;let x=stickInput.x+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),z=stickInput.z+(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0);if(!x&&!z)return;right.setFromMatrixColumn(camera.matrixWorld,0);right.y=0;right.normalize();forward.set(camera.position.x,0,camera.position.z).normalize();moveLantern(game,game.lantern.x+(right.x*x+forward.x*z)*2,game.lantern.z+(right.z*x+forward.z*z)*2);}
 function processEvents(){
   for(const e of game.events){
+    if(e.type==='encore'){pulse(e.x,e.z,e.r,'#ccaff2');emit(e.x,e.z,9,'#ccaff2');sound(262,.3,'sine',.023);}
+    if(e.type==='ghostlight')pulse(e.x,e.z,e.r,'#9bdbd8');
+    if(e.type==='gift'){chime(523,.022);notify(`${giftInfo(e.id,e.rank).name} ${rankMark(e.rank)} is yours for the night.`);}
     if(e.type==='spin')pulse(e.x,e.z,e.r,'#9bdbbd');
     if(e.type==='pop'){presentation?.pop(e);emit(e.x,e.z,6,e.kind==='ghost'?'#e5ddff':e.tier?'#b880a4':'#e7c881');sound(e.kind==='ghost'?1175:e.tier?330:990,.09,'triangle',.013);}
     if(e.type==='leak'){emit(e.x,e.z,10,'#e47d66');sound(110,.25,'triangle',.04);notify(e.kind==='ghost'?'A ghost slipped past. Keep it lit near a spinning top.':'A toy reached the last light.');}
     if(e.type==='sleep'){chime(784,.009);pulse(e.x,e.z,.7,'#96b7e1');}
-    if(e.type==='clear'){chime(1046,.012);notify(`An hour survived. +${e.reward} brass. Choose your next upgrade.`);sound(523,.3);setTimeout(()=>sound(784,.4),180);}
+    if(e.type==='clear'){chime(1046,.012);notify(`An hour survived. +${e.reward} brass. Choose your next upgrade.`);sound(523,.3);setTimeout(()=>sound(784,.4),180);if(game.giftOffer)openNightOffer();}
     if(e.type==='end'){
       deselect();$('ending').hidden=false;$('end-kicker').textContent=e.won?'THE MORNING AFTER':'THE CURTAIN FALLS';$('end-title').textContent=e.won?'Here comes the sun.':'One light too few.';
       $('end-copy').textContent=e.won?'The toys are still again. A little crooked, a little stranger. But the light is yours.':'The toys have taken the stage. Keep paper ghosts in your lantern’s glow near a top. A music box will buy you time.';
-      $('end-stats').textContent=`${e.won?6:Math.max(0,game.wave-1)} HOURS SURVIVED · ${game.kills-game.ghostKills} SHELLS · ${game.ghostKills} GHOSTS`;$('restart').focus();sound(e.won?784:147,.8,'sine',.04);
+      $('end-stats').textContent=`${e.won?6:Math.max(0,game.wave-1)} HOURS SURVIVED · ${game.kills-game.ghostKills} SHELLS · ${game.ghostKills} GHOSTS`;$('end-gifts').textContent=game.giftHistory.length?GIFT_IDS.filter(id=>game.nightGifts[id]).map(id=>`${giftInfo(id,game.nightGifts[id]).name} ${rankMark(game.nightGifts[id])}`).join(' · '):'';$('restart').focus();sound(e.won?784:147,.8,'sine',.04);
     }
   }game.events.length=0;
 }
@@ -207,7 +251,7 @@ function animate(now){
       const bar=enemyBars.get(e.id);bar.position.set(e.x,s*1.4+.24+hop,e.z);bar.quaternion.copy(camera.quaternion);bar.userData.fill.scale.x=Math.max(0,e.hp/e.maxHp);bar.userData.fill.position.x=-(1-e.hp/e.maxHp)*.36;bar.visible=e.hp<e.maxHp;
     }
   }
-  for(const t of game.towers){const o=towerModels.get(t.id);if(!o)continue;const lit=onLight(game,{x:o.position.x,z:o.position.z});if(t.type==='top'){o.rotation.y=clock*(lit?12:6);o.rotation.z=Math.sin(clock*5)*.035;o.scale.setScalar(t.branch==='orbit'?1.2:1.12);if(t.branch==='bowling')o.rotation.x=Math.sin(clock*3)*.08;}else{o.scale.setScalar(1.12);o.rotation.z=Math.sin(clock*(lit?9:5))*.02;o.position.y=.18+Math.sin(clock*3)*.018;if(game.phase==='wave'&&Math.floor(clock*1.4)!==o.userData.lastBeat){o.userData.lastBeat=Math.floor(clock*1.4);pulse(o.position.x,o.position.z,t.branch==='invitation'?3.8:3.05,t.branch==='lullaby'?'#b6a9de':'#93b7c5');}}}
+  for(const t of game.towers){const o=towerModels.get(t.id);if(!o)continue;const lit=onLight(game,{x:o.position.x,z:o.position.z});if(t.type==='top'){o.rotation.y=clock*(lit?12:6)*(giftInfo('overwound',game.nightGifts.overwound)?.rate??1);o.rotation.z=Math.sin(clock*5)*.035;o.scale.setScalar(t.branch==='orbit'?1.2:1.12);if(t.branch==='bowling')o.rotation.x=Math.sin(clock*3)*.08;}else{o.scale.setScalar(1.12);o.rotation.z=Math.sin(clock*(lit?9:5))*.02;o.position.y=.18+Math.sin(clock*3)*.018;if(game.phase==='wave'&&Math.floor(clock*1.4)!==o.userData.lastBeat){o.userData.lastBeat=Math.floor(clock*1.4);pulse(o.position.x,o.position.z,t.branch==='invitation'?3.8:3.05,t.branch==='lullaby'?'#b6a9de':'#93b7c5');}}}
   for(let i=effects.length-1;i>=0;i--){const p=effects[i];if(game.phase==='paused')continue;p.life-=dt;if(p.ring){p.mesh.scale.setScalar(p.r*(1-p.life/p.maxLife));p.mesh.material.opacity=.28*p.life/p.maxLife;}else{p.vy-=dt*8;p.mesh.position.x+=p.vx*dt;p.mesh.position.z+=p.vz*dt;p.mesh.position.y+=p.vy*dt;p.mesh.scale.setScalar(Math.min(1,p.life*3));}if(p.life<=0){scene.remove(p.mesh);p.mesh.material.dispose();effects.splice(i,1);}}
   // Reuse a small pool of top projectiles; their positions come directly from simulation.
   while(projectileModels.length<game.shots.length){const o=topProto.clone(true);o.scale.setScalar(.6);scene.add(o);projectileModels.push(o);}
@@ -218,9 +262,9 @@ function animate(now){
   const dawn=dawnProgress;
   scene.background.lerpColors(nightColor,dawnColor,dawn);scene.fog.color.copy(scene.background);ambient.intensity=.88+dawn*.85;keyLight.color.copy(nightKey).lerp(dawnKey,dawn);keyLight.intensity=2.25+dawn*1.4;
   lightSpot.intensity=165+Math.sin(clock*7)*5;lanternGlow.intensity=9+Math.sin(clock*11)*.35;
-  presentation?.update(game,clock,dt,camera);
+  presentation?.update(game,clock,dt,camera);nightView.update(game,clock);
   updateUI();renderer.render(scene,camera);
-  window.__GAME__={frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch})),lightRadius:LIGHT_RADIUS};
+  window.__GAME__={frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch,range:towerRange(game,t)})),lightRadius:LIGHT_RADIUS,nightGifts:{...game.nightGifts},giftOffer:game.giftOffer,giftHistory:game.giftHistory,encoreBursts:game.encoreBursts,ghostlightsCreated:game.ghostlightsCreated,ghostlights:game.ghostlights.map(p=>({x:p.x,z:p.z,radius:p.radius,life:p.life}))};
   if(frame%15===0){$('stage').dataset.telemetry=JSON.stringify(window.__GAME__);}
 }
 const projectileModels=[];

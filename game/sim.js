@@ -1,3 +1,4 @@
+import {GIFT_HOURS,giftInfo} from './night-gifts.js';
 // Pure simulation: renderer and input both consume this state, never drive rules themselves.
 export const PATH=[[-8,-4.1],[-5,-4.1],[-5,2.7],[0,2.7],[0,-2.8],[5.3,-2.8],[5.3,3.6],[8,3.6]];
 export const SOCKETS=[[-6.9,-1],[-2.7,0.7],[-2.7,-3.5],[2.7,-0.4],[3,3.8],[7.3,0.4]];
@@ -28,10 +29,20 @@ export function pointAt(distance){
     d-=lengths[i];
   }
 }
-export function onLight(game,p){return Math.hypot(p.x-game.lantern.x,p.z-game.lantern.z)<LIGHT_RADIUS;}
-export function createGame(){return {phase:'title',wave:0,lives:12,coins:76,kills:0,ghostKills:0,time:0,waveTime:0,spawned:0,spawnClock:0,nextId:1,enemies:[],towers:[{id:1,slot:1,type:'top',branch:null,charge:0},{id:2,slot:3,type:'music',branch:null,charge:0}],shots:[],events:[],lantern:{x:-1,z:0,tx:-1,tz:0,speed:0},lastReward:0,selected:null};}
+export function onLight(game,p){return Math.hypot(p.x-game.lantern.x,p.z-game.lantern.z)<LIGHT_RADIUS||game.ghostlights.some(light=>light.life>0&&Math.hypot(p.x-light.x,p.z-light.z)<light.radius);}
+export function towerRange(g,t){
+  const range=t.type==='music'?(t.branch==='invitation'?3.8:3.05):t.branch==='orbit'?3.8:t.branch==='bowling'?4.2:2.65;
+  return range*(t.type==='top'?(giftInfo('overwound',g.nightGifts.overwound)?.reach??1):1);
+}
+export function chooseNightGift(g,id){
+  if(g.phase!=='build'||!GIFT_HOURS.includes(g.giftOffer)||g.giftOffer!==g.wave||g.giftHistory.some(p=>p.wave===g.wave))return false;
+  if(!Object.hasOwn(g.nightGifts,id)||!giftInfo(id,g.nightGifts[id]+1))return false;
+  const rank=++g.nightGifts[id];g.giftHistory.push({wave:g.wave,id,rank});g.giftOffer=0;
+  g.events.push({type:'gift',id,rank});return true;
+}
+export function createGame(){return {phase:'title',wave:0,lives:12,coins:76,kills:0,ghostKills:0,time:0,waveTime:0,spawned:0,spawnClock:0,nextId:1,enemies:[],towers:[{id:1,slot:1,type:'top',branch:null,charge:0},{id:2,slot:3,type:'music',branch:null,charge:0}],shots:[],events:[],nightGifts:{encore:0,overwound:0,ghostlight:0},giftOffer:0,giftHistory:[],ghostlights:[],nextLightId:1,encoreBursts:0,ghostlightsCreated:0,lantern:{x:-1,z:0,tx:-1,tz:0,speed:0},lastReward:0,selected:null};}
 export function startGame(g){if(g.phase==='title')g.phase='build';}
-export function beginWave(g){if(g.phase!=='build'||!waveInfo(g.wave+1))return false;g.phase='wave';g.wave++;g.waveTime=0;g.spawned=0;g.spawnClock=0;g.events.push({type:'wave',wave:g.wave});return true;}
+export function beginWave(g){if(g.phase!=='build'||g.giftOffer||!waveInfo(g.wave+1))return false;g.phase='wave';g.wave++;g.waveTime=0;g.spawned=0;g.spawnClock=0;g.events.push({type:'wave',wave:g.wave});return true;}
 export function buildTower(g,slot,type){
   if(!['build','wave'].includes(g.phase)||!Number.isInteger(slot)||!SOCKETS[slot]||!Object.hasOwn(COST,type)||g.towers.some(t=>t.slot===slot)||g.coins<COST[type])return false;
   g.coins-=COST[type];g.towers.push({id:++g.nextId+1000,slot,type,branch:null,charge:0});g.events.push({type:'build',slot});return true;
@@ -48,20 +59,35 @@ export function spawnEnemy(g,tier=2,distance=0,kind='doll'){
   const e={id:++g.nextId,kind,tier:ghost?0:tier,hp,maxHp:hp,distance,...p,age:0,slow:0,sleep:0,exposure:0,wakeGrace:0,hit:0};
   g.enemies.push(e);return e;
 }
-export function damageEnemy(g,e,amount){
+export function damageEnemy(g,e,amount,allowEncore=true){
   if(amount<=0||!canDamageEnemy(g,e))return false;
+  const encore=e.sleep>0&&allowEncore?giftInfo('encore',g.nightGifts.encore):null;
+  // Snapshot before a shell breaks: its newborn does not take this same shockwave.
+  const audience=encore?g.enemies.filter(other=>other!==e&&!other.dead&&Math.hypot(other.x-e.x,other.z-e.z)<encore.radius):[];
   e.hp-=amount;e.hit=.14;
   if(e.sleep>0){e.sleep=0;e.exposure=0;e.wakeGrace=1.2;}
-  if(e.hp>0)return true;
-  e.dead=true;g.kills++;if(e.kind==='ghost')g.ghostKills++;
-  g.coins+=e.kind==='ghost'?7:e.tier===0?4:1;
-  g.events.push({type:'pop',x:e.x,z:e.z,tier:e.tier,kind:e.kind});
-  if(e.kind!=='ghost'&&e.tier>0)spawnEnemy(g,e.tier-1,e.distance);
+  if(e.hp<=0){
+    e.dead=true;g.kills++;if(e.kind==='ghost')g.ghostKills++;
+    g.coins+=e.kind==='ghost'?7:e.tier===0?4:1;
+    g.events.push({type:'pop',x:e.x,z:e.z,tier:e.tier,kind:e.kind});
+    if(e.kind!=='ghost'&&e.tier>0)spawnEnemy(g,e.tier-1,e.distance);
+    const light=e.kind==='ghost'?giftInfo('ghostlight',g.nightGifts.ghostlight):null;
+    if(light){
+      g.ghostlights.push({id:g.nextLightId++,x:e.x,z:e.z,radius:light.radius,life:light.duration,duration:light.duration});
+      if(g.ghostlights.length>8)g.ghostlights.shift();g.ghostlightsCreated++;
+      g.events.push({type:'ghostlight',x:e.x,z:e.z,r:light.radius});
+    }
+  }
+  if(encore){
+    g.encoreBursts++;g.events.push({type:'encore',x:e.x,z:e.z,r:encore.radius});
+    for(const other of audience)damageEnemy(g,other,encore.damage,false);
+  }
   return true;
 }
 export function stepGame(g,dt){
   if(!Number.isFinite(dt)||dt<=0||g.phase==='paused'||g.phase==='won'||g.phase==='lost'||g.phase==='title')return;
   dt=Math.min(dt,.1);g.time+=dt;
+  for(const light of g.ghostlights)light.life-=dt;g.ghostlights=g.ghostlights.filter(light=>light.life>0);
   const l=g.lantern,dx=l.tx-l.x,dz=l.tz-l.z,dist=Math.hypot(dx,dz),step=Math.min(dist,dt*6);
   if(dist>.001){l.x+=dx/dist*step;l.z+=dz/dist*step;}l.speed=step/dt;
   if(g.phase!=='wave')return;
@@ -71,7 +97,7 @@ export function stepGame(g,dt){
   for(const e of g.enemies){e.slow=0;e.hearing=false;e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.sleep=Math.max(0,e.sleep-dt);e.wakeGrace=Math.max(0,e.wakeGrace-dt);}
   // Music applies before movement and attacks. Sleeping enemies wake on damage.
   for(const t of g.towers.filter(t=>t.type==='music')){
-    const [x,z]=SOCKETS[t.slot],lit=onLight(g,{x,z}),range=t.branch==='invitation'?3.8:3.05;
+    const [x,z]=SOCKETS[t.slot],lit=onLight(g,{x,z}),range=towerRange(g,t);
     for(const e of g.enemies){
       if(e.dead||Math.hypot(e.x-x,e.z-z)>range)continue;
       e.slow=Math.max(e.slow,t.branch==='invitation'?(lit?.25:.15):lit?.6:.42);
@@ -93,13 +119,14 @@ export function stepGame(g,dt){
   }
   for(const t of g.towers.filter(t=>t.type==='top')){
     const [x,z]=SOCKETS[t.slot],boost=onLight(g,{x,z})?2:1;
-    t.charge-=dt*boost;
-    const range=t.branch==='orbit'?3.8:t.branch==='bowling'?4.2:2.65;
+    const winding=giftInfo('overwound',g.nightGifts.overwound);
+    t.charge-=dt*boost*(winding?.rate??1);
+    const range=towerRange(g,t);
     const targets=g.enemies.filter(e=>canDamageEnemy(g,e)&&Math.hypot(e.x-x,e.z-z)<=range).sort((a,b)=>b.distance-a.distance);
     if(!targets.length||t.charge>0)continue;
     if(t.branch==='bowling'){
       const e=targets[0],vx=e.x-x,vz=e.z-z,d=Math.hypot(vx,vz)||1;
-      g.shots.push({x,z,vx:vx/d*10,vz:vz/d*10,life:.7,hit:new Set()});t.charge=1.25;
+      g.shots.push({x,z,vx:vx/d*10,vz:vz/d*10,life:.7*(winding?.reach??1),hit:new Set()});t.charge=1.25;
     }else if(t.branch==='orbit'){
       t.charge=.52;for(const e of targets)damageEnemy(g,e,2.8);g.events.push({type:'spin',x,z,r:range});
     }else{t.charge=.48;for(const e of targets)damageEnemy(g,e,3.2);g.events.push({type:'spin',x,z,r:range});}
@@ -109,6 +136,6 @@ export function stepGame(g,dt){
   if(g.lives<=0){g.lives=0;g.phase='lost';g.events.push({type:'end',won:false});return;}
   if(g.spawned>=count&&!g.enemies.length){
     if(g.wave>=6){g.phase='won';g.events.push({type:'end',won:true});}
-    else{g.phase='build';g.lastReward=18+g.wave*3;g.coins+=g.lastReward;g.events.push({type:'clear',reward:g.lastReward});}
+    else{g.phase='build';g.lastReward=18+g.wave*3;g.coins+=g.lastReward;if(GIFT_HOURS.includes(g.wave))g.giftOffer=g.wave;g.events.push({type:'clear',reward:g.lastReward});}
   }
 }
