@@ -27,7 +27,7 @@ export function upgradeTower(g,slot,branch){
 }
 export function sellTower(g,slot){const t=g.towers.find(t=>t.slot===slot);if(!t||!['build','wave'].includes(g.phase))return false;g.coins+=Math.floor((COST[t.type]+(t.branch?UPGRADE_COST:0))*.65);g.towers=g.towers.filter(a=>a!==t);return true;}
 export function moveLantern(g,x,z){g.lantern.tx=Math.max(-8.8,Math.min(8.8,x));g.lantern.tz=Math.max(-5.7,Math.min(5.7,z));}
-export function spawnEnemy(g,tier=2,distance=0){const p=pointAt(distance);const hp=[6,12,22][tier]*(1+Math.max(0,g.wave-2)*.09);const e={id:++g.nextId,tier,hp,maxHp:hp,distance,...p,age:0,slow:0,sleep:0,exposure:0,wakeGrace:0,hit:0};g.enemies.push(e);return e;}
+export function spawnEnemy(g,tier=2,distance=0){const p=pointAt(distance);const hp=[6,12,22][tier]*([1,1,1.5,2.3,3.5,5,7][g.wave]??7);const e={id:++g.nextId,tier,hp,maxHp:hp,distance,...p,age:0,slow:0,sleep:0,exposure:0,wakeGrace:0,hit:0};g.enemies.push(e);return e;}
 export function damageEnemy(g,e,amount){if(e.dead||e.sleep>0&&amount<=0)return;e.hp-=amount;e.hit=.14;if(e.sleep>0){e.sleep=0;e.exposure=0;e.wakeGrace=1.2;}if(e.hp>0)return;e.dead=true;g.kills++;g.coins+=e.tier===0?4:1;g.events.push({type:'pop',x:e.x,z:e.z,tier:e.tier});if(e.tier>0)spawnEnemy(g,e.tier-1,e.distance);}
 export function stepGame(g,dt){
   if(!Number.isFinite(dt)||dt<=0||g.phase==='paused'||g.phase==='won'||g.phase==='lost'||g.phase==='title')return;
@@ -38,22 +38,24 @@ export function stepGame(g,dt){
   g.waveTime+=dt;g.spawnClock-=dt;
   const count=4+g.wave*2;
   if(g.spawned<count&&g.spawnClock<=0){spawnEnemy(g,g.wave===1&&g.spawned%3===0?1:2);g.spawned++;g.spawnClock=Math.max(.8,2.4-g.wave*.16);}
-  for(const e of g.enemies){e.slow=0;e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.sleep=Math.max(0,e.sleep-dt);e.wakeGrace=Math.max(0,e.wakeGrace-dt);}
+  for(const e of g.enemies){e.slow=0;e.hearing=false;e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.sleep=Math.max(0,e.sleep-dt);e.wakeGrace=Math.max(0,e.wakeGrace-dt);}
   // Music applies before movement and attacks. Sleeping enemies wake on damage.
   for(const t of g.towers.filter(t=>t.type==='music')){
     const [x,z]=SOCKETS[t.slot],lit=onLight(g,{x,z}),range=t.branch==='invitation'?3.8:3.05;
     for(const e of g.enemies){
       if(e.dead||Math.hypot(e.x-x,e.z-z)>range)continue;
-      e.slow=Math.max(e.slow,t.branch==='invitation'?.15:lit?.6:.42);
+      e.slow=Math.max(e.slow,t.branch==='invitation'?(lit?.25:.15):lit?.6:.42);
+      if(t.branch==='lullaby')e.hearing=true;
       if(t.branch==='lullaby'&&e.wakeGrace<=0&&e.sleep<=0){e.exposure+=dt*(lit?2:1);if(e.exposure>=1.5){e.sleep=2.6;e.exposure=0;g.events.push({type:'sleep',x:e.x,z:e.z});}}
       if(t.branch==='invitation'){
         // Attraction pulls enemies backward along their route when they have passed the box.
-        const back=pointAt(e.distance-.3);if(Math.hypot(back.x-x,back.z-z)<Math.hypot(e.x-x,e.z-z))e.slow=Math.max(e.slow,.78);
+        const back=pointAt(e.distance-.3);if(Math.hypot(back.x-x,back.z-z)<Math.hypot(e.x-x,e.z-z))e.slow=Math.max(e.slow,lit?.9:.78);
       }
     }
   }
   for(const e of g.enemies){
     if(e.dead)continue;
+    if(!e.hearing)e.exposure=0;
     const speed=[1.48,1.04,.78][e.tier]*(1+g.wave*.055)*(onLight(g,e)?1.65:1)*(1-e.slow);
     if(e.sleep<=0)e.distance+=speed*dt;
     Object.assign(e,pointAt(e.distance));

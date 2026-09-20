@@ -26,7 +26,7 @@ const shapes={
   ],
   music:[
     `box(1.15,.65,.85,teal,0,.4,0);box(.98,.04,.68,black,0,.75,0);const lid=box(1.2,.08,.9,teal,0,1.0,-.32);lid.rotation.x=-.95;`,
-    `box(1.25,.13,.95,brass,0,.18,0);box(1.2,.09,.88,teal,0,.29,0);for(const x of [-.57,.57])box(.09,.55,.86,teal,x,.56,0);for(const z of [-.39,.39])box(1.1,.55,.08,teal,0,.56,z);box(1.12,.07,.8,black,0,.36,0);box(1.26,.08,.96,brass,0,.87,0);box(1.25,.65,.07,teal,0,1.19,-.46);box(1.06,.47,.03,dark,0,1.2,-.4);star(.18,brass,0,1.2,-.37);`,
+    `box(1.25,.13,.95,brass,0,.18,0);box(1.2,.09,.88,teal,0,.29,0);for(const x of [-.57,.57])box(.09,.55,.86,teal,x,.56,0);for(const z of [-.39,.39])box(1.1,.55,.08,teal,0,.56,z);box(1.12,.07,.8,black,0,.36,0);for(const z of [-.43,.43])box(1.26,.06,.06,brass,0,.87,z);for(const x of [-.6,.6])box(.06,.06,.86,brass,x,.87,0);box(1.25,.65,.07,teal,0,1.19,-.46);box(1.06,.47,.03,dark,0,1.2,-.4);star(.18,brass,0,1.2,-.37);`,
     `cyl(.65,.65,.6,teal,0,.4,0,8);cyl(.58,.58,.07,black,0,.72,0,8);const lid=cyl(.66,.66,.08,teal,0,1.12,-.32,8);lid.rotation.x=-1;`
   ],
   lantern:[
