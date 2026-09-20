@@ -1,11 +1,12 @@
 import * as THREE from 'three';
+import {TheatreAudio} from './audio.js';
 import {ASSET,bakeStatic} from './assetlib.js';
 import {handmade,createPresentation} from './presentation.js';
 import {createGhostView,updateGhostView,disposeGhostView} from './ghost-view.js';
 import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight,waveInfo} from './sim.js';
 
 const $=id=>document.getElementById(id);
-let game=createGame(),priorPhase='build',selected=null,muted=false,audio=null,dragging=false,stickInput={x:0,z:0},accumulator=0,clock=0,frame=0,toastTimeout,playSpeed=1;
+let game=createGame(),priorPhase='build',selected=null,dragging=false,stickInput={x:0,z:0},accumulator=0,clock=0,frame=0,toastTimeout,playSpeed=1;
 const keys=new Set(),enemyModels=new Map(),enemyBars=new Map(),towerModels=new Map(),effects=[];
 const scene=new THREE.Scene();scene.background=new THREE.Color('#111120');scene.fog=new THREE.FogExp2('#151321',.009);
 let renderer;
@@ -50,7 +51,7 @@ const particleGeometry=new THREE.SphereGeometry(.07,5,4),particleMaterial=new TH
 const pulseGeometry=new THREE.RingGeometry(.94,1,48);
 const healthGeometry=new THREE.PlaneGeometry(.72,.07),healthBack=new THREE.MeshBasicMaterial({color:'#17232a'}),healthFill=new THREE.MeshBasicMaterial({color:'#e6b581'});
 let ghostProto,dollProto,topProto,musicProto,lantern,goalLantern,presentation;
-let melodyBeat=-1,dawnProgress=0;
+let dawnProgress=0;
 const nightColor=new THREE.Color('#111120'),dawnColor=new THREE.Color('#544753'),dawnKey=new THREE.Color('#ffe1b0'),nightKey=new THREE.Color('#ffd093');
 let fps=60,lastUI='',lastTime=performance.now();
 const raycaster=new THREE.Raycaster(),floor=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
@@ -64,11 +65,17 @@ function resize(){
 }
 addEventListener('resize',resize);resize();
 function notify(message){$('toast').textContent=message;$('toast').classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>$('toast').classList.remove('show'),3400);}
-function sound(note=440,duration=.12,type='sine',volume=.025){
-  if(muted||!audio)return;const o=audio.createOscillator(),a=audio.createGain();o.type=type;o.frequency.value=note;a.gain.setValueAtTime(0,audio.currentTime);a.gain.linearRampToValueAtTime(volume,audio.currentTime+.008);a.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+duration);o.connect(a);a.connect(audio.destination);o.start();o.stop(audio.currentTime+duration);
+let audioStorage=null;try{audioStorage=window.localStorage;}catch{}
+const audio=new TheatreAudio({storage:audioStorage,onChange:syncAudioUI});
+function syncAudioUI(){
+  const p=audio.preferences;
+  $('sound').textContent=p.muted?'♪':'♫';$('sound').setAttribute('aria-label',p.muted?'Enable sound':'Mute sound');
+  $('sound').setAttribute('aria-pressed',String(p.muted));
+  $('audio-status').textContent=audio.label;$('sound').title=audio.label;
+  for(const key of ['music','effects']){$(key+'-level').value=Math.round(p[key]*100);$(key+'-value').textContent=Math.round(p[key]*100)+'%';}
 }
-function chime(note,volume=.016){sound(note,.7,'sine',volume);sound(note*2.003,.25,'sine',volume*.3);sound(note*3,.12,'sine',volume*.1);}
-function initAudio(){try{audio??=new (window.AudioContext||window.webkitAudioContext)();audio.resume();}catch{muted=true;}}
+const sound=(...args)=>audio.sound(...args),chime=(...args)=>audio.chime(...args);
+syncAudioUI();
 function emit(x,z,count,color='#e5c78d'){
   for(let i=0;i<count;i++){
     const p=mesh(particleGeometry,new THREE.MeshBasicMaterial({color}),x,.5,z);const a=Math.random()*Math.PI*2;
@@ -130,17 +137,22 @@ function updateUI(force=false){
   [...$('socket-labels').children].forEach((b,i)=>{const t=game.towers.find(t=>t.slot===i);b.className=`socket ${t?'occupied':'empty'} ${selected===i?'selected':''}`;b.textContent=t?(t.type==='top'?'⟳':'♫'):i+1;b.setAttribute('aria-label',`Socket ${i+1}: ${t?t.type==='top'?'spinning top':'music box':'empty'}${t?.branch?', '+t.branch:''}`);});
   if(selected!==null)updateSelection();
 }
-function start(){initAudio();startGame(game);$('intro').hidden=true;$('play-ui').hidden=false;$('socket-labels').hidden=false;syncTowers();updateUI(true);sound(392,.3);setTimeout(()=>sound(587,.35),160);notify('Two toys are ready. Add a defense, then begin midnight.');}
+function start(){startGame(game);audio.setScene(game.phase,game.wave);void audio.unlock();$('intro').hidden=true;$('play-ui').hidden=false;$('socket-labels').hidden=false;syncTowers();updateUI(true);sound(392,.3);setTimeout(()=>sound(587,.35),160);notify('Two toys are ready. Add a defense, then begin midnight.');}
 function restart(){
-  presentation?.reset();melodyBeat=-1;dawnProgress=0;
+  presentation?.reset();dawnProgress=0;
   for(const o of enemyModels.values()){disposeGhostView(o);scene.remove(o);}enemyModels.clear();for(const o of enemyBars.values())scene.remove(o);enemyBars.clear();for(const o of towerModels.values())scene.remove(o);towerModels.clear();for(const p of effects){scene.remove(p.mesh);p.mesh.material.dispose();}effects.length=0;
-  game=createGame();startGame(game);selected=null;keys.clear();stickInput={x:0,z:0};accumulator=0;scene.background.copy(nightColor);ambient.intensity=.88;$('ending').hidden=true;$('pause-screen').hidden=true;$('selection').hidden=true;rangeRing.visible=false;syncTowers();updateUI(true);notify('A new night. Another chance.');
+  game=createGame();startGame(game);audio.restart();selected=null;keys.clear();stickInput={x:0,z:0};accumulator=0;scene.background.copy(nightColor);ambient.intensity=.88;$('ending').hidden=true;$('pause-screen').hidden=true;$('selection').hidden=true;rangeRing.visible=false;syncTowers();updateUI(true);notify('A new night. Another chance.');
 }
-function togglePause(){if(game.phase==='paused'){game.phase=priorPhase;$('pause-screen').hidden=true;lastTime=performance.now();}else if(['wave','build'].includes(game.phase)){priorPhase=game.phase;game.phase='paused';keys.clear();stickInput={x:0,z:0};$('pause-screen').hidden=false;$('resume').focus();}updateUI(true);}
+function togglePause(){if(game.phase==='paused'){game.phase=priorPhase;$('pause-screen').hidden=true;lastTime=performance.now();}else if(['wave','build'].includes(game.phase)){priorPhase=game.phase;game.phase='paused';keys.clear();stickInput={x:0,z:0};$('pause-screen').hidden=false;$('resume').focus();}dragging=false;$('stick-knob').style.transform='';audio.setScene(game.phase,game.wave);updateUI(true);}
 $('startb').onclick=start;$('next-wave').onclick=()=>{if(beginWave(game)){deselect();sound(196,.65,'sine',.05);notify(game.wave===1?'Keep the glow on your defenses. Watch the dolls in its light.':game.wave===2?'Paper ghosts! Shine the lantern on them near your tops.':`Hour ${game.wave}. ${waveInfo(game.wave).ghosts} paper ghosts are coming.`);updateUI(true);}};
 $('close-selection').onclick=deselect;$('pause').onclick=togglePause;$('resume').onclick=togglePause;$('restart').onclick=restart;$('restart-pause').onclick=restart;
 $('speed').onclick=()=>{playSpeed=playSpeed===1?2:1;$('speed').textContent=playSpeed+'×';$('speed').setAttribute('aria-label',playSpeed===1?'Play at double speed':'Play at normal speed');};
-$('sound').onclick=()=>{initAudio();muted=!muted;$('sound').textContent=muted?'♪':'♫';$('sound').setAttribute('aria-label',muted?'Enable sound':'Mute sound');};
+$('sound').onclick=()=>{
+  const needsUnlock=audio.wantsPlayback&&(!audio.context||audio.context.state!=='running')&&!audio.preferences.muted;
+  if(!needsUnlock)audio.setPreference('muted',!audio.preferences.muted);
+  void audio.unlock();
+};
+for(const key of ['music','effects'])$(key+'-level').oninput=e=>audio.setPreference(key,Number(e.target.value)/100);
 function pointerWorld(event){const rect=renderer.domElement.getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1),camera);if(raycaster.ray.intersectPlane(floor,hit))moveLantern(game,hit.x,hit.z);}
 renderer.domElement.addEventListener('pointerdown',e=>{if(!['build','wave'].includes(game.phase))return;dragging=true;renderer.domElement.setPointerCapture(e.pointerId);pointerWorld(e);deselect();});
 renderer.domElement.addEventListener('pointermove',e=>{if(dragging)pointerWorld(e);});
@@ -149,9 +161,9 @@ const stick=$('stick');let stickId=null;
 function updateStick(e){const b=stick.getBoundingClientRect(),dx=(e.clientX-b.left-b.width/2)/24,dy=(e.clientY-b.top-b.height/2)/24,length=Math.max(1,Math.hypot(dx,dy));stickInput={x:dx/length,z:dy/length};$('stick-knob').style.transform=`translate(${stickInput.x*20}px,${stickInput.z*20}px)`;}
 stick.onpointerdown=e=>{e.preventDefault();stickId=e.pointerId;stick.setPointerCapture(e.pointerId);updateStick(e);};stick.onpointermove=e=>{if(e.pointerId===stickId)updateStick(e);};
 for(const name of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(name,()=>{stickId=null;stickInput={x:0,z:0};$('stick-knob').style.transform='';});
-addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.repeat)return;if(e.code==='KeyP'||e.code==='Escape'){if(selected!==null&&e.code==='Escape')deselect();else togglePause();}else if(e.code==='Space'&&game.phase==='build')$('next-wave').click();else keys.add(e.code);});
+addEventListener('keydown',e=>{if(e.target.matches('input'))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.repeat)return;if(e.code==='KeyP'||e.code==='Escape'){if(selected!==null&&e.code==='Escape')deselect();else togglePause();}else if(e.code==='Space'&&game.phase==='build')$('next-wave').click();else keys.add(e.code);});
 addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();dragging=false;stickInput={x:0,z:0};});
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&game.phase==='wave')togglePause();});
+document.addEventListener('visibilitychange',()=>{audio.setHidden(document.hidden);if(document.hidden&&['wave','build'].includes(game.phase))togglePause();});
 const right=new THREE.Vector3(),forward=new THREE.Vector3();
 function moveInput(){if(!['build','wave'].includes(game.phase))return;let x=stickInput.x+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),z=stickInput.z+(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0);if(!x&&!z)return;right.setFromMatrixColumn(camera.matrixWorld,0);right.y=0;right.normalize();forward.set(camera.position.x,0,camera.position.z).normalize();moveLantern(game,game.lantern.x+(right.x*x+forward.x*z)*2,game.lantern.z+(right.z*x+forward.z*z)*2);}
 function processEvents(){
@@ -171,7 +183,7 @@ function processEvents(){
 function animate(now){
   requestAnimationFrame(animate);const raw=(now-lastTime)/1000;lastTime=now;const dt=Math.min(raw,.1);fps+=(1/Math.max(.001,raw)-fps)*.07;frame++;
   if(game.phase!=='paused'&&game.phase!=='lost')clock+=dt;
-  moveInput();accumulator+=Math.min(raw,.2)*(game.phase==='wave'?playSpeed:1);while(accumulator>=1/60){stepGame(game,1/60);accumulator-=1/60;}processEvents();
+  moveInput();accumulator+=Math.min(raw,.2)*(game.phase==='wave'?playSpeed:1);while(accumulator>=1/60){stepGame(game,1/60);accumulator-=1/60;}audio.setScene(game.phase,game.wave);processEvents();
   if(lantern){
     const l=game.lantern;lantern.position.set(l.x,.08+Math.sin(clock*5)*.016,l.z);lantern.rotation.z=Math.sin(clock*13)*Math.min(.065,l.speed*.012);lightSpot.position.set(l.x,7,l.z);lightSpot.target.position.set(l.x,0,l.z);lanternGlow.position.set(l.x,.85,l.z);lightDisc.position.set(l.x,.083,l.z);lightRim.position.set(l.x,.09,l.z);
     lightRim.material.opacity=.32+Math.sin(clock*2)*.06;
@@ -207,10 +219,6 @@ function animate(now){
   scene.background.lerpColors(nightColor,dawnColor,dawn);scene.fog.color.copy(scene.background);ambient.intensity=.88+dawn*.85;keyLight.color.copy(nightKey).lerp(dawnKey,dawn);keyLight.intensity=2.25+dawn*1.4;
   lightSpot.intensity=165+Math.sin(clock*7)*5;lanternGlow.intensity=9+Math.sin(clock*11)*.35;
   presentation?.update(game,clock,dt,camera);
-  if(['wave','build'].includes(game.phase)){
-    const beat=Math.floor(clock/2.6);
-    if(beat!==melodyBeat){melodyBeat=beat;const melody=[523.25,0,659.25,783.99,0,622.25,587.33,0];if(melody[beat%8])chime(melody[beat%8],.005);}
-  }
   updateUI();renderer.render(scene,camera);
   window.__GAME__={frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch})),lightRadius:LIGHT_RADIUS};
   if(frame%15===0){$('stage').dataset.telemetry=JSON.stringify(window.__GAME__);}

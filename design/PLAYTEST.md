@@ -60,3 +60,22 @@ Pause and restart were exercised, alongside the automated test specifically free
 The asset gallery rendered all twelve views of the three ghost constructions. Candidate 2 is selected. Asset contracts pass for all six models: 21,968 unique triangles, including 556 for the ghost, and about 2.19 MB for the game directory. The standalone build succeeds and includes the local ghost model and view module. No new dependencies or external assets were added.
 
 Physical-device performance, wider human balance testing and the official public-URL jam gate remain pending. No public deployment or entry submission was made in this pass.
+
+
+## Music and mobile pass — September 20, 2026
+
+Added the original 16-bar, 80 BPM score “Wind the Moon”, with music-box melody, bass, plucked harmony, combat ticks, ghost and late-hour layers, and finite dawn/defeat codas. Composition pitches and synthesis are written for this game; no third-party samples or music files are used. Music follows AudioContext time independently of the render loop and the speed button. Master mute, independent music/effects volumes, private-storage fallback, pause/visibility suspension, bounded voice counts and cleanup are covered by the audio implementation.
+
+`npm test` passes 31 checks (23 existing gameplay checks plus 8 audio tests). New tests cover the complete score and loop, phase-dependent layers, finite endings, one context/scheduler across repeated starts, pause and background suspension, delayed callbacks without catch-up bursts, 144 seconds of scheduling with voice disposal, the 80-oscillator cap, independent persistent levels, mute, denied playback retry, and unavailable Web Audio/storage. The audio tests use a simulated context; they do not measure an actual speaker or mobile processor.
+
+Browser checks use native controls through CUA in the desktop in-app browser:
+
+- **360 × 640 portrait:** Start, toolbar, bottom upgrade sheet, buying an orbit, bell, 2× combat, pause, both volume sliders, mute/unmute and resume. A joystick drag moved the lantern from [-1, 0] to [0.392, -1.955], about 2.40 metres. Pause held position, 3 kills, 40 brass and 5 enemies unchanged while frames advanced from 4,200 to 7,200. The displayed audio state changed from Playing to intermission and back.
+- **390 × 844 portrait:** standalone `dist/` Start, lane click, purchases/upgrades, next-wave preview and combat. A lane click moved the light to [-4.639, 0.234]. The first hour cleared with 12 light and 89 brass using an upgraded starter top. Music was running after the real Start button without a second unlock gesture.
+- **844 × 390 landscape:** found and fixed a 480px app minimum height that clipped the bell below the viewport. Welcome and audio/pause dialogs now use compact columns; toolbar, bell, joystick, selection and ghost cue remain reachable. Rotated the standalone build during hour two; rendering and the live game continued. That wave cleared with both ghosts defeated, 12 light and 85 brass. A 1280 × 720 desktop check also confirmed the audio dialog and restart controls. No console errors or warnings were observed in the final source or standalone runs.
+
+The first browser audio check caught the native timer's receiver requirement: passing setInterval directly as an instance callback failed to start the scheduler. Calling the native timer through a wrapper fixed it. Subsequent Start, mute/unmute and resume checks displayed Playing from the running audio context and successfully started the scheduler. This verifies browser activation/scheduling, not a subjective listening review or physical-device speaker behavior.
+
+Volume choices of 34% music / 44% effects survived a reload; the test restored the defaults of 70% / 80%. The compact portrait intermission dialog displays all controls without clipping. The game still uses the original tower prices, waves and simulation rules.
+
+Asset contracts pass with 21,968 unique triangles and approximately 2.21 MB in the game directory. Syntax checks and the standalone build pass. Physical-device touch, iOS interruptions/silent-mode behavior, Android speaker playback, thermal performance, notch/browser-bar behavior on hardware, mobile 4G transfer timing and the official public-URL jam gate remain unverified. No deployment or submission was made in this pass.

@@ -19,7 +19,7 @@ First playable built September 20, 2026. Local development has no paid services 
 - The light doubles top firing speed and strengthens music, but makes enemies move 65% faster. Positioning matters.
 - Read the next-wave roster before ringing the bell. Paper ghosts join from hour two. Shine your moving lantern on them near a spinning top: they are immune to damage in darkness.
 - Ring the bell to start each hour. Survive six waves; keep at least one of the stage light's 12 points.
-- P or the pause button opens intermission. The 1× / 2× button speeds up combat. Sound starts after the first gesture and can be muted on desktop and phone.
+- P or the pause button opens intermission. The 1× / 2× button speeds up combat. The score starts with Raise the curtain. Tap ♫ to mute everything, or adjust Music and Toy sounds separately in intermission. The mix is saved on this browser.
 
 ## Defenses
 
@@ -33,14 +33,22 @@ Breaking a large matryoshka releases a smaller, faster one. Each shell earns bra
 
 ## Presentation pass
 
-The theatre now has warm lantern and footlight glows, a faint light shaft, drifting dust, hanging stars, procedural wood grain and worn paint. Dolls anticipate their hops, squash on impact and shed two tumbling shell pieces. Wide orbit adds two circling miniature tops; bowling has brass chevrons; lullaby has floating moons; invitation draws gold threads to toys being held back. Music boxes release floating notes, and a quiet synthesized music-box motif plays after Start. The lighting gradually warms toward dawn.
+The theatre now has warm lantern and footlight glows, a faint light shaft, drifting dust, hanging stars, procedural wood grain and worn paint. Dolls anticipate their hops, squash on impact and shed two tumbling shell pieces. Wide orbit adds two circling miniature tops; bowling has brass chevrons; lullaby has floating moons; invitation draws gold threads to toys being held back. Music boxes release floating notes, and an original synthesized music-box waltz plays after Start. The lighting gradually warms toward dawn.
 
 All of this is generated locally. No external images, model downloads, paid services or new dependencies were added. That presentation pass left the rules and upgrade prices unchanged; the subsequent paper-ghost pass adds the encounter described above.
+
+## Music and phones
+
+**Wind the Moon** is an original 16-bar waltz at 80 BPM, composed in `game/audio.js`: music-box melody, soft bass and plucked chords, mechanical ticks during combat, higher ghost notes from hour two, and a lower pulse in the late hours. Dawn and defeat have distinct short endings. It uses Web Audio oscillators and a filtered echo; no samples, music downloads, external services or new dependencies.
+
+Audio time stays independent of 1× / 2× game speed. Pause and page hiding suspend audio; returning to a hidden game requires resuming play. Master mute and independent music/effects volumes persist locally. A short scheduling horizon avoids frame-dependent timing; late callbacks skip missed time, and finished oscillator nodes are disconnected.
+
+Phone layouts support compact portrait and short landscape screens, with larger toolbar controls, a bottom upgrade panel in portrait, compact landscape welcome/pause tickets, scrollable dialogs and safe-area spacing. Browser viewport checks covered 360 × 640, 390 × 844 and 844 × 390. These are desktop-browser layout/input checks, not physical iPhone/Android or mobile network benchmarks. See the playtest log for exact evidence.
 
 ## Verify and build
 
 ```sh
-npm test        # 23 mechanics and full-night checks
+npm test        # 31 gameplay and audio checks
 npm run check   # asset contracts, triangle counts, folder size
 npm run build   # produces dist/ with local Three.js included
 ```
