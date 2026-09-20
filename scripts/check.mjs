@@ -13,4 +13,4 @@ for(const file of files){
   console.log(`${file}: ${Math.round(n)} triangles, ${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)} m, base ${bounds.min.y.toFixed(3)}`);
 }
 async function bytes(dir){let n=0;for(const f of await readdir(dir)){const p=`${dir}/${f}`,s=await stat(p);n+=s.isDirectory()?await bytes(p):s.size;}return n;}
-console.log(`All five asset types: ${triangles} triangles. Standalone game folder: ${(await bytes('game')/1e6).toFixed(2)} MB.`);
+console.log(`All ${files.length} asset types: ${triangles} triangles. Standalone game folder: ${(await bytes('game')/1e6).toFixed(2)} MB.`);

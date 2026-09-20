@@ -4,6 +4,21 @@ export const SOCKETS=[[-6.9,-1],[-2.7,0.7],[-2.7,-3.5],[2.7,-0.4],[3,3.8],[7.3,0
 export const COST={top:36,music:42};
 export const UPGRADE_COST=42;
 export const LIGHT_RADIUS=2.55;
+// The preview and spawner share one roster, including the order of arrivals.
+const ghostSlots=[[],[1,5],[1,4,8],[1,4,7,10],[1,3,6,9,12],[1,3,6,9,12,14]];
+const waveTitles=['A rustle in the wings.','Something in the paper.','The music turns strange.','No one is sleeping.','Just a little longer.','The last dark hour.'];
+const waveHints=['Build your toys. Broken dolls release smaller, faster dolls.',
+  'New: paper ghosts. Move your light onto them so tops can hit them.',
+  'Mixed company. Light reveals ghosts, but speeds the dolls up too.',
+  'A lullaby can hold a ghost while you bring the light around.',
+  'Keep ghosts lit near your tops. Let music buy you more time.',
+  'Six ghosts in the final hour. Follow them through your defenses.'];
+const waves=ghostSlots.map((slots,index)=>{
+  const roster=Array.from({length:6+index*2},(_,i)=>({kind:slots.includes(i)?'ghost':'doll',tier:index===0&&i%3===0?1:2}));
+  return {number:index+1,title:waveTitles[index],hint:waveHints[index],roster,dolls:roster.length-slots.length,ghosts:slots.length};
+});
+export function waveInfo(wave){return waves[wave-1];}
+export function canDamageEnemy(g,e){return !e.dead&&(e.kind!=='ghost'||onLight(g,e));}
 const lengths=PATH.slice(1).map((p,i)=>Math.hypot(p[0]-PATH[i][0],p[1]-PATH[i][1]));
 export const PATH_LENGTH=lengths.reduce((a,b)=>a+b,0);
 export function pointAt(distance){
@@ -14,9 +29,9 @@ export function pointAt(distance){
   }
 }
 export function onLight(game,p){return Math.hypot(p.x-game.lantern.x,p.z-game.lantern.z)<LIGHT_RADIUS;}
-export function createGame(){return {phase:'title',wave:0,lives:12,coins:76,kills:0,time:0,waveTime:0,spawned:0,spawnClock:0,nextId:1,enemies:[],towers:[{id:1,slot:1,type:'top',branch:null,charge:0},{id:2,slot:3,type:'music',branch:null,charge:0}],shots:[],events:[],lantern:{x:-1,z:0,tx:-1,tz:0,speed:0},lastReward:0,selected:null};}
+export function createGame(){return {phase:'title',wave:0,lives:12,coins:76,kills:0,ghostKills:0,time:0,waveTime:0,spawned:0,spawnClock:0,nextId:1,enemies:[],towers:[{id:1,slot:1,type:'top',branch:null,charge:0},{id:2,slot:3,type:'music',branch:null,charge:0}],shots:[],events:[],lantern:{x:-1,z:0,tx:-1,tz:0,speed:0},lastReward:0,selected:null};}
 export function startGame(g){if(g.phase==='title')g.phase='build';}
-export function beginWave(g){if(g.phase!=='build')return false;g.phase='wave';g.wave++;g.waveTime=0;g.spawned=0;g.spawnClock=0;g.events.push({type:'wave',wave:g.wave});return true;}
+export function beginWave(g){if(g.phase!=='build'||!waveInfo(g.wave+1))return false;g.phase='wave';g.wave++;g.waveTime=0;g.spawned=0;g.spawnClock=0;g.events.push({type:'wave',wave:g.wave});return true;}
 export function buildTower(g,slot,type){
   if(!['build','wave'].includes(g.phase)||!Number.isInteger(slot)||!SOCKETS[slot]||!Object.hasOwn(COST,type)||g.towers.some(t=>t.slot===slot)||g.coins<COST[type])return false;
   g.coins-=COST[type];g.towers.push({id:++g.nextId+1000,slot,type,branch:null,charge:0});g.events.push({type:'build',slot});return true;
@@ -27,8 +42,23 @@ export function upgradeTower(g,slot,branch){
 }
 export function sellTower(g,slot){const t=g.towers.find(t=>t.slot===slot);if(!t||!['build','wave'].includes(g.phase))return false;g.coins+=Math.floor((COST[t.type]+(t.branch?UPGRADE_COST:0))*.65);g.towers=g.towers.filter(a=>a!==t);return true;}
 export function moveLantern(g,x,z){g.lantern.tx=Math.max(-8.8,Math.min(8.8,x));g.lantern.tz=Math.max(-5.7,Math.min(5.7,z));}
-export function spawnEnemy(g,tier=2,distance=0){const p=pointAt(distance);const hp=[6,12,22][tier]*([1,1,1.5,2.3,3.5,5,7][g.wave]??7);const e={id:++g.nextId,tier,hp,maxHp:hp,distance,...p,age:0,slow:0,sleep:0,exposure:0,wakeGrace:0,hit:0};g.enemies.push(e);return e;}
-export function damageEnemy(g,e,amount){if(e.dead||e.sleep>0&&amount<=0)return;e.hp-=amount;e.hit=.14;if(e.sleep>0){e.sleep=0;e.exposure=0;e.wakeGrace=1.2;}if(e.hp>0)return;e.dead=true;g.kills++;g.coins+=e.tier===0?4:1;g.events.push({type:'pop',x:e.x,z:e.z,tier:e.tier});if(e.tier>0)spawnEnemy(g,e.tier-1,e.distance);}
+export function spawnEnemy(g,tier=2,distance=0,kind='doll'){
+  const p=pointAt(distance),ghost=kind==='ghost';
+  const hp=ghost?([0,18,24,32,44,60,76][g.wave]??76):[6,12,22][tier]*([1,1,1.5,2.3,3.5,5,7][g.wave]??7);
+  const e={id:++g.nextId,kind,tier:ghost?0:tier,hp,maxHp:hp,distance,...p,age:0,slow:0,sleep:0,exposure:0,wakeGrace:0,hit:0};
+  g.enemies.push(e);return e;
+}
+export function damageEnemy(g,e,amount){
+  if(amount<=0||!canDamageEnemy(g,e))return false;
+  e.hp-=amount;e.hit=.14;
+  if(e.sleep>0){e.sleep=0;e.exposure=0;e.wakeGrace=1.2;}
+  if(e.hp>0)return true;
+  e.dead=true;g.kills++;if(e.kind==='ghost')g.ghostKills++;
+  g.coins+=e.kind==='ghost'?7:e.tier===0?4:1;
+  g.events.push({type:'pop',x:e.x,z:e.z,tier:e.tier,kind:e.kind});
+  if(e.kind!=='ghost'&&e.tier>0)spawnEnemy(g,e.tier-1,e.distance);
+  return true;
+}
 export function stepGame(g,dt){
   if(!Number.isFinite(dt)||dt<=0||g.phase==='paused'||g.phase==='won'||g.phase==='lost'||g.phase==='title')return;
   dt=Math.min(dt,.1);g.time+=dt;
@@ -36,8 +66,8 @@ export function stepGame(g,dt){
   if(dist>.001){l.x+=dx/dist*step;l.z+=dz/dist*step;}l.speed=step/dt;
   if(g.phase!=='wave')return;
   g.waveTime+=dt;g.spawnClock-=dt;
-  const count=4+g.wave*2;
-  if(g.spawned<count&&g.spawnClock<=0){spawnEnemy(g,g.wave===1&&g.spawned%3===0?1:2);g.spawned++;g.spawnClock=Math.max(.8,2.4-g.wave*.16);}
+  const roster=waveInfo(g.wave).roster,count=roster.length;
+  if(g.spawned<count&&g.spawnClock<=0){const entry=roster[g.spawned];spawnEnemy(g,entry.tier,0,entry.kind);g.spawned++;g.spawnClock=Math.max(.8,2.4-g.wave*.16);}
   for(const e of g.enemies){e.slow=0;e.hearing=false;e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.sleep=Math.max(0,e.sleep-dt);e.wakeGrace=Math.max(0,e.wakeGrace-dt);}
   // Music applies before movement and attacks. Sleeping enemies wake on damage.
   for(const t of g.towers.filter(t=>t.type==='music')){
@@ -56,16 +86,16 @@ export function stepGame(g,dt){
   for(const e of g.enemies){
     if(e.dead)continue;
     if(!e.hearing)e.exposure=0;
-    const speed=[1.48,1.04,.78][e.tier]*(1+g.wave*.055)*(onLight(g,e)?1.65:1)*(1-e.slow);
+    const speed=(e.kind==='ghost'?1.05:[1.48,1.04,.78][e.tier])*(1+g.wave*.055)*(onLight(g,e)?1.65:1)*(1-e.slow);
     if(e.sleep<=0)e.distance+=speed*dt;
     Object.assign(e,pointAt(e.distance));
-    if(e.distance>=PATH_LENGTH){e.dead=true;g.lives-=e.tier+1;g.events.push({type:'leak',x:e.x,z:e.z});}
+    if(e.distance>=PATH_LENGTH){e.dead=true;g.lives-=e.kind==='ghost'?2:e.tier+1;g.events.push({type:'leak',x:e.x,z:e.z,kind:e.kind});}
   }
   for(const t of g.towers.filter(t=>t.type==='top')){
     const [x,z]=SOCKETS[t.slot],boost=onLight(g,{x,z})?2:1;
     t.charge-=dt*boost;
     const range=t.branch==='orbit'?3.8:t.branch==='bowling'?4.2:2.65;
-    const targets=g.enemies.filter(e=>!e.dead&&Math.hypot(e.x-x,e.z-z)<=range).sort((a,b)=>b.distance-a.distance);
+    const targets=g.enemies.filter(e=>canDamageEnemy(g,e)&&Math.hypot(e.x-x,e.z-z)<=range).sort((a,b)=>b.distance-a.distance);
     if(!targets.length||t.charge>0)continue;
     if(t.branch==='bowling'){
       const e=targets[0],vx=e.x-x,vz=e.z-z,d=Math.hypot(vx,vz)||1;
@@ -74,7 +104,7 @@ export function stepGame(g,dt){
       t.charge=.52;for(const e of targets)damageEnemy(g,e,2.8);g.events.push({type:'spin',x,z,r:range});
     }else{t.charge=.48;for(const e of targets)damageEnemy(g,e,3.2);g.events.push({type:'spin',x,z,r:range});}
   }
-  for(const s of g.shots){s.x+=s.vx*dt;s.z+=s.vz*dt;s.life-=dt;for(const e of g.enemies){if(!e.dead&&!s.hit.has(e.id)&&Math.hypot(e.x-s.x,e.z-s.z)<.85){s.hit.add(e.id);damageEnemy(g,e,11);}}}
+  for(const s of g.shots){s.x+=s.vx*dt;s.z+=s.vz*dt;s.life-=dt;for(const e of g.enemies){if(!e.dead&&!s.hit.has(e.id)&&Math.hypot(e.x-s.x,e.z-s.z)<.85){if(damageEnemy(g,e,11))s.hit.add(e.id);}}}
   g.shots=g.shots.filter(s=>s.life>0);g.enemies=g.enemies.filter(e=>!e.dead);
   if(g.lives<=0){g.lives=0;g.phase='lost';g.events.push({type:'end',won:false});return;}
   if(g.spawned>=count&&!g.enemies.length){

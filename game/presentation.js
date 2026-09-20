@@ -62,6 +62,7 @@ export function createPresentation(scene, topProto) {
   const bulb = new THREE.MeshBasicMaterial({color:'#ffe2a0'});
   const lilac = new THREE.MeshBasicMaterial({color:'#c7b9f1', transparent:true, opacity:.85});
   const shellMat = new THREE.MeshStandardMaterial({color:'#9b4962', roughness:.82, side:THREE.DoubleSide});
+  const paperGeometry=new THREE.PlaneGeometry(.25,.32),paperMaterial=new THREE.MeshStandardMaterial({color:'#f5e9ce',roughness:1,side:THREE.DoubleSide});
   const shellGeometry = new THREE.SphereGeometry(.45, 12, 8, 0, Math.PI);
   const noteGeometry = new THREE.SphereGeometry(.075, 6, 4);
   const poolGeometry = new THREE.PlaneGeometry(1, 1);
@@ -153,6 +154,12 @@ export function createPresentation(scene, topProto) {
     return a;
   }
   function pop(e) {
+    if(e.kind==='ghost'){
+      for(let i=0;i<5;i++){
+        const piece=new THREE.Mesh(paperGeometry,paperMaterial);piece.position.set(e.x,1.15,e.z);piece.rotation.set(i*.7,i,0);scene.add(piece);
+        const angle=i*Math.PI*2/5;fx.push({mesh:piece,life:1.1,max:1.1,vx:Math.cos(angle)*1.3,vz:Math.sin(angle)*1.3,vy:1.9,spin:3+i,shell:true});
+      }return;
+    }
     const s=[.6,.85,1.15][e.tier];
     for(let i=0;i<2;i++) {
       const piece=new THREE.Mesh(shellGeometry,shellMat);piece.scale.set(s,s*1.18,s);piece.position.set(e.x,.58*s,e.z);piece.rotation.y=i*Math.PI;scene.add(piece);
@@ -185,14 +192,14 @@ export function createPresentation(scene, topProto) {
       if(t.type==='music'&&game.phase==='wave'&&a.lastNote!==beat){a.lastNote=beat;note(a.root.position.x,a.root.position.z,t.branch==='lullaby'?'#b9a4ef':t.branch==='invitation'?'#e4bc88':'#8dcabd');}
     }
     for(const id of sleepers.keys())if(!game.enemies.some(e=>e.id===id&&e.sleep>0)){scene.remove(sleepers.get(id));sleepers.delete(id);}
-    for(const e of game.enemies)if(e.sleep>0){let s=sleepers.get(e.id);if(!s){s=new THREE.Mesh(moonGeometry,lilac);scene.add(s);sleepers.set(e.id,s);}s.position.set(e.x,1.35+[.6,.85,1.15][e.tier]*.65+Math.sin(clock*2)*.09,e.z);s.quaternion.copy(camera.quaternion);}
+    for(const e of game.enemies)if(e.sleep>0){let s=sleepers.get(e.id);if(!s){s=new THREE.Mesh(moonGeometry,lilac);scene.add(s);sleepers.set(e.id,s);}s.position.set(e.x,(e.kind==='ghost'?2.65:1.35+[.6,.85,1.15][e.tier]*.65)+Math.sin(clock*2)*.09,e.z);s.quaternion.copy(camera.quaternion);}
     const links=new Set();
     for(const t of game.towers.filter(t=>t.branch==='invitation')) {
       const [x,z]=SOCKETS[t.slot];
       for(const e of game.enemies)if(e.slow>.7&&Math.hypot(e.x-x,e.z-z)<3.8){
         const key=t.id+':'+e.id;links.add(key);let line=tethers.get(key);
         if(!line){line=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:'#d6ad78',transparent:true,opacity:.42,depthWrite:false}));scene.add(line);tethers.set(key,line);}
-        const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(x,.85,z),new THREE.Vector3((x+e.x)/2,1.35+Math.sin(clock*3)*.12,(z+e.z)/2),new THREE.Vector3(e.x,.5,e.z));
+        const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(x,.85,z),new THREE.Vector3((x+e.x)/2,1.35+Math.sin(clock*3)*.12,(z+e.z)/2),new THREE.Vector3(e.x,e.kind==='ghost'?1.1:.5,e.z));
         line.geometry.setFromPoints(curve.getPoints(12));
       }
     }

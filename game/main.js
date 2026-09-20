@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {ASSET,bakeStatic} from './assetlib.js';
 import {handmade,createPresentation} from './presentation.js';
-import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight} from './sim.js';
+import {createGhostView,updateGhostView,disposeGhostView} from './ghost-view.js';
+import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight,waveInfo} from './sim.js';
 
 const $=id=>document.getElementById(id);
 let game=createGame(),priorPhase='build',selected=null,muted=false,audio=null,dragging=false,stickInput={x:0,z:0},accumulator=0,clock=0,frame=0,toastTimeout,playSpeed=1;
@@ -48,7 +49,7 @@ const goalLight=new THREE.PointLight('#ffc66e',15,8,2);goalLight.position.set(8,
 const particleGeometry=new THREE.SphereGeometry(.07,5,4),particleMaterial=new THREE.MeshBasicMaterial({color:'#f6d791'});
 const pulseGeometry=new THREE.RingGeometry(.94,1,48);
 const healthGeometry=new THREE.PlaneGeometry(.72,.07),healthBack=new THREE.MeshBasicMaterial({color:'#17232a'}),healthFill=new THREE.MeshBasicMaterial({color:'#e6b581'});
-let dollProto,topProto,musicProto,lantern,goalLantern,presentation;
+let ghostProto,dollProto,topProto,musicProto,lantern,goalLantern,presentation;
 let melodyBeat=-1,dawnProgress=0;
 const nightColor=new THREE.Color('#111120'),dawnColor=new THREE.Color('#544753'),dawnKey=new THREE.Color('#ffe1b0'),nightKey=new THREE.Color('#ffd093');
 let fps=60,lastUI='',lastTime=performance.now();
@@ -105,29 +106,38 @@ function syncTowers(){
   for(const t of game.towers){if(towerModels.has(t.id))continue;const o=(t.type==='top'?topProto:musicProto).clone(true);const [x,z]=SOCKETS[t.slot];o.position.set(x,.18,z);o.rotation.y=t.type==='music'?.35:0;scene.add(o);towerModels.set(t.id,o);}
 }
 function updateUI(force=false){
-  const signature=[game.phase,game.wave,game.lives,game.coins,game.enemies.length,game.spawned,selected].join(':');if(!force&&signature===lastUI)return;lastUI=signature;
+  const ghosts=game.enemies.filter(e=>e.kind==='ghost'),litGhosts=ghosts.filter(e=>onLight(game,e)).length;
+  const signature=[ghosts.length,litGhosts,game.phase,game.wave,game.lives,game.coins,game.enemies.length,game.spawned,selected].join(':');if(!force&&signature===lastUI)return;lastUI=signature;
   $('lives').textContent=game.lives;$('coins').textContent=game.coins;
   const displayPhase=game.phase==='paused'?priorPhase:game.phase;
   const displayHour=displayPhase==='won'?6:displayPhase==='build'?game.wave:Math.max(0,game.wave-1);
   $('hour').innerHTML=`${displayHour===0?'12':String(displayHour).padStart(2,'0')}:00 <span>AM</span>`;
-  $('hour-label').textContent=displayPhase==='won'?'MORNING HAS ARRIVED':displayPhase==='wave'?'KEEP THE LIGHT BURNING':'A MOMENT TO PREPARE';
+  $('hour-label').textContent=displayPhase==='won'?'MORNING HAS ARRIVED':displayPhase==='lost'?'THE CURTAIN FALLS':displayPhase==='wave'?'KEEP THE LIGHT BURNING':'A MOMENT TO PREPARE';
   [...$('clock-dots').children].forEach((d,i)=>{d.className=i<game.wave-(displayPhase==='wave'?1:0)?'done':i===game.wave-1?'active':'';});
-  const fighting=displayPhase==='wave';$('wave-kicker').textContent=fighting?`HOUR ${game.wave} OF 6 · THE TOYS MARCH ON`:game.wave?`HOUR ${game.wave} SURVIVED · +${game.lastReward} BRASS`:'THE CURTAIN IS UP';
-  $('wave-title').textContent=fighting?['','A rustle in the wings.','There is something inside.','The music turns strange.','No one is sleeping.','Just a little longer.','The last dark hour.'][game.wave]:game.wave?'Take a breath. Wind your toys.':'Make yourself at home.';
-  $('wave-hint').textContent=fighting?`${game.enemies.length} toys on stage · ${Math.max(0,4+game.wave*2-game.spawned)} still in the wings`:'Tap a brass socket to place or upgrade a toy.';
-  $('wave-count').textContent=`${6-game.wave} hours until morning`;
-  $('next-wave').disabled=fighting;$('next-wave').innerHTML=fighting?'The night is unfolding…':`${game.wave?'Ring the next bell':'Begin midnight'} <span>→</span>`;
+  const fighting=displayPhase==='wave',ended=['won','lost'].includes(displayPhase),plan=waveInfo(fighting?game.wave:game.wave+1);
+  $('wave-kicker').textContent=ended?(displayPhase==='won'?'THE NIGHT IS YOURS':`HOUR ${game.wave} · THE LIGHT WENT OUT`):fighting?`HOUR ${game.wave} OF 6 · THE TOYS MARCH ON`:game.wave?`HOUR ${game.wave} SURVIVED · +${game.lastReward} BRASS`:'THE CURTAIN IS UP';
+  $('wave-title').textContent=fighting?plan.title:ended?'The curtain falls.':game.wave?'Take a breath. Wind your toys.':'Make yourself at home.';
+  $('wave-hint').textContent=fighting?`${game.enemies.length} toys on stage · ${Math.max(0,plan.roster.length-game.spawned)} still in the wings`:plan?`NEXT · HOUR ${plan.number}: ${plan.dolls} dolls${plan.ghosts?` + ${plan.ghosts} paper ghosts`:''}`:'';
+  $('wave-advice').hidden=fighting||ended;$('wave-advice').textContent=plan?.hint??'';
+  $('wave-advice').classList.toggle('ghost-warning',!!plan?.ghosts);
+  const waitingGhosts=fighting?plan.roster.slice(game.spawned).filter(e=>e.kind==='ghost').length:0;
+  $('ghost-cue').hidden=!fighting||!plan?.ghosts||(!ghosts.length&&!waitingGhosts);
+  $('ghost-cue').classList.toggle('exposed',litGhosts>0);
+  $('ghost-count').textContent=ghosts.length?`${ghosts.length-litGhosts} hidden · ${litGhosts} exposed`:'Paper ghosts in the wings';
+  $('ghost-rule').textContent='Shine your lantern on ghosts so tops can hit them.';
+  $('wave-count').textContent=`${6-game.wave} ${6-game.wave===1?'hour':'hours'} until morning`;
+  $('next-wave').disabled=fighting||ended;$('next-wave').innerHTML=ended?'The night is over':fighting?'The night is unfolding…':`${game.wave?'Ring the next bell':'Begin midnight'} <span>→</span>`;
   [...$('socket-labels').children].forEach((b,i)=>{const t=game.towers.find(t=>t.slot===i);b.className=`socket ${t?'occupied':'empty'} ${selected===i?'selected':''}`;b.textContent=t?(t.type==='top'?'⟳':'♫'):i+1;b.setAttribute('aria-label',`Socket ${i+1}: ${t?t.type==='top'?'spinning top':'music box':'empty'}${t?.branch?', '+t.branch:''}`);});
   if(selected!==null)updateSelection();
 }
 function start(){initAudio();startGame(game);$('intro').hidden=true;$('play-ui').hidden=false;$('socket-labels').hidden=false;syncTowers();updateUI(true);sound(392,.3);setTimeout(()=>sound(587,.35),160);notify('Two toys are ready. Add a defense, then begin midnight.');}
 function restart(){
   presentation?.reset();melodyBeat=-1;dawnProgress=0;
-  for(const o of enemyModels.values())scene.remove(o);enemyModels.clear();for(const o of enemyBars.values())scene.remove(o);enemyBars.clear();for(const o of towerModels.values())scene.remove(o);towerModels.clear();for(const p of effects){scene.remove(p.mesh);p.mesh.material.dispose();}effects.length=0;
+  for(const o of enemyModels.values()){disposeGhostView(o);scene.remove(o);}enemyModels.clear();for(const o of enemyBars.values())scene.remove(o);enemyBars.clear();for(const o of towerModels.values())scene.remove(o);towerModels.clear();for(const p of effects){scene.remove(p.mesh);p.mesh.material.dispose();}effects.length=0;
   game=createGame();startGame(game);selected=null;keys.clear();stickInput={x:0,z:0};accumulator=0;scene.background.copy(nightColor);ambient.intensity=.88;$('ending').hidden=true;$('pause-screen').hidden=true;$('selection').hidden=true;rangeRing.visible=false;syncTowers();updateUI(true);notify('A new night. Another chance.');
 }
 function togglePause(){if(game.phase==='paused'){game.phase=priorPhase;$('pause-screen').hidden=true;lastTime=performance.now();}else if(['wave','build'].includes(game.phase)){priorPhase=game.phase;game.phase='paused';keys.clear();stickInput={x:0,z:0};$('pause-screen').hidden=false;$('resume').focus();}updateUI(true);}
-$('startb').onclick=start;$('next-wave').onclick=()=>{if(beginWave(game)){deselect();sound(196,.65,'sine',.05);notify(game.wave===1?'Keep the glow on your defenses. Watch the dolls in its light.':`Hour ${game.wave}. The theatre stirs again.`);updateUI(true);}};
+$('startb').onclick=start;$('next-wave').onclick=()=>{if(beginWave(game)){deselect();sound(196,.65,'sine',.05);notify(game.wave===1?'Keep the glow on your defenses. Watch the dolls in its light.':game.wave===2?'Paper ghosts! Shine the lantern on them near your tops.':`Hour ${game.wave}. ${waveInfo(game.wave).ghosts} paper ghosts are coming.`);updateUI(true);}};
 $('close-selection').onclick=deselect;$('pause').onclick=togglePause;$('resume').onclick=togglePause;$('restart').onclick=restart;$('restart-pause').onclick=restart;
 $('speed').onclick=()=>{playSpeed=playSpeed===1?2:1;$('speed').textContent=playSpeed+'×';$('speed').setAttribute('aria-label',playSpeed===1?'Play at double speed':'Play at normal speed');};
 $('sound').onclick=()=>{initAudio();muted=!muted;$('sound').textContent=muted?'♪':'♫';$('sound').setAttribute('aria-label',muted?'Enable sound':'Mute sound');};
@@ -147,14 +157,14 @@ function moveInput(){if(!['build','wave'].includes(game.phase))return;let x=stic
 function processEvents(){
   for(const e of game.events){
     if(e.type==='spin')pulse(e.x,e.z,e.r,'#9bdbbd');
-    if(e.type==='pop'){presentation?.pop(e);emit(e.x,e.z,6,e.tier?'#b880a4':'#e7c881');sound(e.tier?330:990,.09,'triangle',.013);}
-    if(e.type==='leak'){emit(e.x,e.z,10,'#e47d66');sound(110,.25,'triangle',.04);notify('A toy reached the last light.');}
+    if(e.type==='pop'){presentation?.pop(e);emit(e.x,e.z,6,e.kind==='ghost'?'#e5ddff':e.tier?'#b880a4':'#e7c881');sound(e.kind==='ghost'?1175:e.tier?330:990,.09,'triangle',.013);}
+    if(e.type==='leak'){emit(e.x,e.z,10,'#e47d66');sound(110,.25,'triangle',.04);notify(e.kind==='ghost'?'A ghost slipped past. Keep it lit near a spinning top.':'A toy reached the last light.');}
     if(e.type==='sleep'){chime(784,.009);pulse(e.x,e.z,.7,'#96b7e1');}
     if(e.type==='clear'){chime(1046,.012);notify(`An hour survived. +${e.reward} brass. Choose your next upgrade.`);sound(523,.3);setTimeout(()=>sound(784,.4),180);}
     if(e.type==='end'){
       deselect();$('ending').hidden=false;$('end-kicker').textContent=e.won?'THE MORNING AFTER':'THE CURTAIN FALLS';$('end-title').textContent=e.won?'Here comes the sun.':'One light too few.';
-      $('end-copy').textContent=e.won?'The toys are still again. A little crooked, a little stranger. But the light is yours.':'The toys have taken the stage. Try moving your light away from the lane, and pair a music box with a spinning top.';
-      $('end-stats').textContent=`${e.won?6:Math.max(0,game.wave-1)} HOURS SURVIVED · ${game.kills} SHELLS BROKEN`;$('restart').focus();sound(e.won?784:147,.8,'sine',.04);
+      $('end-copy').textContent=e.won?'The toys are still again. A little crooked, a little stranger. But the light is yours.':'The toys have taken the stage. Keep paper ghosts in your lantern’s glow near a top. A music box will buy you time.';
+      $('end-stats').textContent=`${e.won?6:Math.max(0,game.wave-1)} HOURS SURVIVED · ${game.kills-game.ghostKills} SHELLS · ${game.ghostKills} GHOSTS`;$('restart').focus();sound(e.won?784:147,.8,'sine',.04);
     }
   }game.events.length=0;
 }
@@ -167,10 +177,14 @@ function animate(now){
     lightRim.material.opacity=.32+Math.sin(clock*2)*.06;
   }
   if(dollProto){
-    for(const [id,o]of enemyModels)if(!game.enemies.some(e=>e.id===id)){scene.remove(o);enemyModels.delete(id);scene.remove(enemyBars.get(id));enemyBars.delete(id);}
+    for(const [id,o]of enemyModels)if(!game.enemies.some(e=>e.id===id)){disposeGhostView(o);scene.remove(o);enemyModels.delete(id);scene.remove(enemyBars.get(id));enemyBars.delete(id);}
     for(const e of game.enemies){
       let o=enemyModels.get(e.id);
-      if(!o){o=dollProto.clone(true);scene.add(o);enemyModels.set(e.id,o);const bar=new THREE.Group();mesh(healthGeometry,healthBack,0,0,0,bar);bar.userData.fill=mesh(healthGeometry,healthFill,0,0,.004,bar);scene.add(bar);enemyBars.set(e.id,bar);}
+      if(!o){o=e.kind==='ghost'?createGhostView(ghostProto):dollProto.clone(true);scene.add(o);enemyModels.set(e.id,o);const bar=new THREE.Group();mesh(healthGeometry,healthBack,0,0,0,bar);bar.userData.fill=mesh(healthGeometry,healthFill,0,0,.004,bar);scene.add(bar);enemyBars.set(e.id,bar);}
+      if(e.kind==='ghost'){
+        updateGhostView(o,e,onLight(game,e),game.phase==='paused'?0:dt,camera);
+        const bar=enemyBars.get(e.id);bar.position.set(e.x,2.48,e.z);bar.quaternion.copy(camera.quaternion);bar.userData.fill.scale.x=Math.max(0,e.hp/e.maxHp);bar.userData.fill.position.x=-(1-e.hp/e.maxHp)*.36;bar.visible=e.hp<e.maxHp;continue;
+      }
       const s=[.69,.96,1.25][e.tier], asleep=e.sleep>0, phase=(e.age*(e.tier===0?2.1:1.45))%1;
       const flight=Math.sin(Math.PI*Math.min(1,Math.max(0,(phase-.2)/.8))), hop=asleep?0:flight*.4;
       const squash=asleep?-.055:phase<.2?-.15*Math.sin(phase/.2*Math.PI):flight*.11;
@@ -198,14 +212,14 @@ function animate(now){
     if(beat!==melodyBeat){melodyBeat=beat;const melody=[523.25,0,659.25,783.99,0,622.25,587.33,0];if(melody[beat%8])chime(melody[beat%8],.005);}
   }
   updateUI();renderer.render(scene,camera);
-  window.__GAME__={frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch})),lightRadius:LIGHT_RADIUS};
+  window.__GAME__={frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch})),lightRadius:LIGHT_RADIUS};
   if(frame%15===0){$('stage').dataset.telemetry=JSON.stringify(window.__GAME__);}
 }
 const projectileModels=[];
 try {
-  const loaded=await Promise.all(['stage','doll','top','music','lantern'].map(name=>ASSET(`./assets/${name}.js`)));
-  for(let i=0;i<loaded.length;i++)if(!loaded[i].children.length)throw new Error(`Asset failed to load: ${['stage','doll','top','music','lantern'][i]}`);
-  loaded.forEach(handmade);
+  const loaded=await Promise.all(['stage','doll','top','music','lantern','ghost'].map(name=>ASSET(`./assets/${name}.js`)));
+  for(let i=0;i<loaded.length;i++)if(!loaded[i].children.length)throw new Error(`Asset failed to load: ${['stage','doll','top','music','lantern','ghost'][i]}`);
+  loaded.forEach(handmade);ghostProto=loaded[5];
   const stage=loaded[0];stage.position.y=-.7;scene.add(stage);[dollProto,topProto,musicProto]=loaded.slice(1,4);lantern=loaded[4];scene.add(lantern);goalLantern=lantern.clone(true);goalLantern.scale.setScalar(1.4);goalLantern.position.set(8,.12,3.6);scene.add(goalLantern);
   presentation=createPresentation(scene,topProto);
   syncTowers();$('startb').disabled=false;$('startb').textContent='Raise the curtain →';$('startb').focus();window.__READY__=true;window.__START__=start;requestAnimationFrame(animate);

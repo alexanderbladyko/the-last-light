@@ -20,3 +20,10 @@ Keep the same toy designs and palette. Add wear in the material shader after the
 Movement conveys construction: a short compression before each hop, a wooden wobble on impact, two curved pieces when a doll breaks. Upgrade decoration is driven by the existing simulation state, including actual sleep and the invitation's strong slow. It does not change attack ranges or rules. Circling miniature tops are decorative; the wide-orbit damage remains an area sweep.
 
 The selected doll model now has an uneven smile, scarf knot and painted apron dots. Candidate gallery files preserve the original selection exercise; the current shipping models in `game/assets/` include this pass. The original candidate generator is provenance, not a build step, and would overwrite these later model edits if rerun.
+
+
+## Paper ghosts — gameplay pass
+
+A sixth procedural asset joins the toy cast: a torn, folded sheet with a surprised face. It floats with a small sway, folds into a blue silhouette in darkness, and opens into warm paper inside the moving lantern radius. Its face follows the camera horizontally so the reveal reads on the small stage. Defeat scatters paper scraps. The live hidden/exposed count uses the same lantern test as combat, while the folded appearance eases over a fraction of a second.
+
+Ghosts join from hour two, with a shared roster driving both preview text and actual arrivals. Music affects them in darkness; damage requires lantern exposure. The stage lamps are decorative: only the moving lantern opens a ghost. No second lane, new upgrade branch or rig was added.

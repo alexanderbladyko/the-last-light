@@ -10,3 +10,14 @@
 
 /* Keep sound reachable on phones now that the theatre has a music-box score. */
 @media(max-width:520px){#sound{display:grid;position:fixed;right:17px;top:76px;width:32px;height:32px}.resources{gap:8px}.vignette{background:radial-gradient(ellipse at 50% 46%,transparent 27%,#09081477 100%)}}
+
+/* Wave advice remains visible until the player rings the bell. */
+#wave-hint{display:block;font-size:11px;line-height:1.5;color:var(--muted)}
+#wave-advice{display:block;font-size:11px;line-height:1.5;color:var(--muted);max-width:510px;margin-top:5px}
+#wave-advice.ghost-warning{color:#d9c8f0}
+.ghost-cue{position:absolute;top:153px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;background:#1a1b2cd9;border:1px solid #9295c94d;border-radius:4px;padding:9px 17px;z-index:2;width:max-content;max-width:92%}
+.ghost-cue strong{display:block;font-size:12px;color:#c2c5ee;font-weight:500;letter-spacing:.3px}.ghost-cue span{display:block;font-size:10px;color:#b9b8c7;margin-top:4px;line-height:1.4}.ghost-cue.exposed{border-color:#d7b47777}.ghost-cue.exposed strong{color:var(--gold)}
+@media(max-width:520px){#wave-hint,#wave-advice{font-size:10px}.selection{bottom:235px}#stick{bottom:246px}.ghost-cue{top:155px;padding:8px 13px}.ghost-cue strong{font-size:11px}.ghost-cue span{font-size:9px}}
+@media(min-width:851px){.light-note{bottom:193px}.selection{bottom:190px}}
+/* Keep momentary announcements clear of the persistent ghost rule. */
+body:has(#ghost-cue:not([hidden])) #toast{top:216px}

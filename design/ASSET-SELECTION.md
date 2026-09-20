@@ -13,3 +13,10 @@ The gallery at `/design/gallery.html` compares three original construction strat
 All selected modules return Groups, have finite bounds and bases at zero (within 5 mm), use constructor geometry, and load without external assets. Their combined unique geometry is 18,500 triangles before placement. Live game scenery is baked by material with the recipe loader; animated toys move as rigid groups.
 
 Known first-version visual limitations: simple materials without surface wear, low variety, a compact view on phones. These are deliberate scope limits, not a claim of parity with the generated concept image.
+
+
+## Paper ghost — gameplay pass
+
+Three original constructions were compared: a rounded paper cutout, a pointed folded sheet with arms and a torn hem, and an accordion of rectangular panels. Candidate 2 is used in `game/assets/ghost.js`: the arm folds give the reveal animation a visible silhouette change, while the little face reads clearly in warm light. The accordion version is boxy, and the rounded version resembles the dolls too closely. The gallery includes front, right, rear and left views of all three.
+
+The selected ghost is 556 triangles, built from Shape / ExtrudeGeometry, boxes and small spheres. Per-ghost material uniforms fold its outer panels in darkness and open them in light; the face fades in at the same time. The recipe loader still handles assembly and geometry merging. Runtime animation uses material uniforms and group transforms, with no rig or imported mesh.
