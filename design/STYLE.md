@@ -1,0 +1,13 @@
+# The Last Light — first playable
+
+Original haunted toy theatre, based on the attached generated reference board: crooked carved wood, painted tin, warm brass, plum nesting dolls, teal defenses, honey light and a midnight backdrop. No human anatomy, skeletal rigs, external meshes or simulated rigid bodies.
+
+Palette: ink #141920, midnight #243343, plum #78394e, coral #c67461, teal #4d9187, brass #d7b477, cream #f2e3bc, wood #846044. All scenery and toys are geometry constructed in code. References are documentation only; no generated raster art ships in the game.
+
+Scale: theatre floor 20 × 15 m; doll 1.25 m; top 1.3 m; music box 1 m; rolling lantern 1.2 m. Bodies face +Z, grounded at y=0. One tilted fixed camera, soft warm key and cooler fill, readable floor, curtain frame. Stage sockets carry UI numbers, not texture glyphs.
+
+Scope: one curved lane, six sockets, two defenses, nested enemies, mobile/desktop moving spotlight, six waves through dawn, mutually exclusive upgrades, synthesized audio, pause and restart. The first version is a local playable slice, not a submitted jam entry.
+
+Recipe: https://github.com/404-Repo/404-game-recipe (read GAME.md, 404.md, asset contract and traps). Agent-written geometry from the reference; compare three construction variants per asset. Keep code history and evidence. No copied reference-game assets or code.
+
+Acceptance: real Start and restart work; light moves with pointer/touch and keyboard; light boosts both sides; doll shells release faster smaller dolls; top/music upgrades alter mechanics; clear win/loss; pause freezes game; portrait controls remain reachable; no runtime errors or remote runtime dependencies.
