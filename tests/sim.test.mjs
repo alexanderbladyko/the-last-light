@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createGame,startGame,beginWave,buildTower,upgradeTower,stepGame,spawnEnemy,damageEnemy,moveLantern,pointAt,PATH,PATH_LENGTH,SOCKETS,waveInfo,canDamageEnemy,chooseNightGift} from '../game/sim.js';
 const advance=(g,seconds)=>{for(let i=0;i<seconds*60;i++){stepGame(g,1/60);g.events.length=0;}};
 function active(){const g=createGame();startGame(g);beginWave(g);g.spawned=6;g.spawnClock=999;return g;}
-test('route begins and ends at the displayed gates',()=>{assert.deepEqual([pointAt(0).x,pointAt(0).z],PATH[0]);assert.deepEqual([pointAt(PATH_LENGTH).x,pointAt(PATH_LENGTH).z],PATH.at(-1));});
+test('route begins and ends at the displayed gates, including out-of-bounds distances',()=>{for(const d of [-1,0])assert.deepEqual([pointAt(d).x,pointAt(d).z],PATH[0]);for(const d of [PATH_LENGTH,PATH_LENGTH+1])assert.deepEqual([pointAt(d).x,pointAt(d).z],PATH.at(-1));});
 test('building and upgrades enforce currency, valid slots and mutually exclusive branches',()=>{const g=createGame();assert.equal(buildTower(g,0,'top'),false);startGame(g);assert.equal(buildTower(g,0,'top'),true);assert.equal(g.coins,40);assert.equal(buildTower(g,0,'music'),false);assert.equal(buildTower(g,99,'top'),false);assert.equal(buildTower(g,2,'constructor'),false);assert.equal(upgradeTower(g,0,'orbit'),false);g.coins=100;assert.equal(upgradeTower(g,0,'orbit'),true);assert.equal(upgradeTower(g,0,'bowling'),false);assert.equal(upgradeTower(g,3,'bowling'),false);assert.equal(g.coins,58);});
 test('each shell releases exactly one smaller doll at the same route position',()=>{const g=active();const e=spawnEnemy(g,2,7);damageEnemy(g,e,100);damageEnemy(g,e,100);const child=g.enemies.find(a=>!a.dead);assert.equal(child.tier,1);assert.equal(child.distance,7);assert.equal(g.enemies.filter(a=>!a.dead).length,1);damageEnemy(g,child,100);const small=g.enemies.find(a=>!a.dead);assert.equal(small.tier,0);damageEnemy(g,small,100);assert.equal(g.enemies.filter(a=>!a.dead).length,0);assert.equal(g.kills,3);});
 test('spotlight accelerates approaching enemies',()=>{const dark=active(),light=active();dark.towers=[];light.towers=[];const a=spawnEnemy(dark,0,1),b=spawnEnemy(light,0,1);Object.assign(light.lantern,{x:b.x,z:b.z,tx:b.x,tz:b.z});advance(dark,.5);advance(light,.5);assert.ok(b.distance>a.distance*1.15);});
@@ -15,7 +15,8 @@ test('an unprotected theatre loses and rejects further waves',()=>{const g=activ
 test('clearing the final hour produces dawn and stops combat',()=>{const g=active();g.wave=6;g.spawned=16;stepGame(g,1/60);assert.equal(g.phase,'won');const time=g.time;advance(g,2);assert.equal(g.time,time);});
 test('wide orbit reaches a toy outside the basic top range',()=>{for(const branch of [null,'orbit']){const g=active();g.towers=[{slot:1,type:'top',branch,charge:0}];const e=spawnEnemy(g,2,5);const hp=e.hp;stepGame(g,1/60);assert.equal(e.hp<hp,branch==='orbit');}});
 test('a bowling projectile can damage multiple enemies',()=>{const g=active();g.towers=[{slot:1,type:'top',branch:'bowling',charge:0}];const a=spawnEnemy(g,2,12),b=spawnEnemy(g,2,12.35);a.hp=b.hp=200;advance(g,.5);assert.ok(a.hp<200&&b.hp<200);});
-test('lullaby actually puts an undamaged toy to sleep',()=>{const g=active();g.towers=[{slot:3,type:'music',branch:'lullaby',charge:0}];const e=spawnEnemy(g,2,23.3);advance(g,1.8);assert.ok(e.sleep>0);});
+// The curved runner reaches the gramophone's listening area at distance 21.8.
+test('lullaby actually puts an undamaged toy to sleep',()=>{const g=active();g.towers=[{slot:3,type:'music',branch:'lullaby',charge:0}];const e=spawnEnemy(g,2,21.8);advance(g,1.8);assert.ok(e.sleep>0);});
 test('leaving lullaby range resets accumulated listening time',()=>{const g=active();g.towers=[{slot:3,type:'music',branch:'lullaby',charge:0}];const e=spawnEnemy(g,2,0);e.exposure=1;stepGame(g,1/60);assert.equal(e.exposure,0);});
 test('the starter layout loses; investing and following ghosts can reach dawn',()=>{
   for(const mode of ['starter','stationary','ambush','moving']){
@@ -68,7 +69,7 @@ test('tops ignore hidden ghosts and keep attacking dolls in the same crowd',()=>
 });
 test('lullaby can hold a ghost in darkness and only a real hit wakes it',()=>{
   const g=active();g.towers=[{slot:3,type:'music',branch:'lullaby',charge:0}];Object.assign(g.lantern,{x:-8,z:5,tx:-8,tz:5});
-  const e=spawnEnemy(g,0,23.3,'ghost');advance(g,1.8);assert.ok(e.sleep>0);const sleep=e.sleep;
+  const e=spawnEnemy(g,0,21.8,'ghost');advance(g,1.8);assert.ok(e.sleep>0);const sleep=e.sleep;
   damageEnemy(g,e,1);assert.equal(e.sleep,sleep);
   Object.assign(g.lantern,{x:e.x,z:e.z,tx:e.x,tz:e.z});damageEnemy(g,e,1);assert.equal(e.sleep,0);assert.ok(e.wakeGrace>0);
 });

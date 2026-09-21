@@ -36,3 +36,20 @@ Three paper cards appear after hours 1, 3 and 5. Each offers a new gift or the c
 Encore turns a Lullaby wake into a lilac floor pulse with sparks. Splash cannot trigger another Encore, and hidden ghosts stay immune. Overwound increases top rotation and attack cadence while reducing actual range; the selected tower's range ring uses the simulation value. Ghostlight adds a pale teal floor disc, rim and drifting central mote at a defeated ghost's position. Their radius and fade are driven by the real pool state. These effects use only Three.js constructor geometry and existing generated materials; there is no new imported model or rig.
 
 Ghostlight extends the earlier light rule: both the moving lantern and a temporary pool reveal ghosts, boost defenses and accelerate enemies. Decorative stage lamps remain decorative. The original six waves, tower prices and asset models are unchanged in this pass. A Tin Drummer remains a separate proposed gameplay addition.
+
+
+## Stage and toy redesign — September 21
+
+The runner now turns with rounded corners, shared by rendering and simulation.
+It begins at a little red curtain and ends at the house lantern. Brass wind-up
+mounts replace the large double-ring placeholders. Empty mounts show a small
+plus; occupied toys have invisible, larger tap areas with accessible labels.
+The red/cream top has broad lacquer panels, the teal defense is a brass-horn
+gramophone, and nesting dolls have cream floral aprons and larger painted faces.
+
+The camera fits the playable area. Portrait presents the board lengthwise with
+the scenery behind the action and its key light on the audience side. Landscape
+keeps the wide theatre view. The floor texture is quieter, the key/fill brighter,
+and the moving lamp less overexposed. Upright scenery is separate from the shallow
+platform so it can face the audience after rotation. Asset modules stay pure
+constructor geometry, with no new raster files or external models.

@@ -6,7 +6,7 @@ import {ASSET,bakeStatic} from './assetlib.js';
 import {handmade,createPresentation} from './presentation.js';
 import {dressStage} from './stage-look.js';
 import {createGhostView,updateGhostView,disposeGhostView} from './ghost-view.js';
-import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight,waveInfo,chooseNightGift,towerRange} from './sim.js';
+import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,pointAt,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight,waveInfo,chooseNightGift,towerRange} from './sim.js';
 
 const $=id=>document.getElementById(id);
 let game=createGame(),priorPhase='build',selected=null,dragging=false,stickInput={x:0,z:0},accumulator=0,clock=0,frame=0,toastTimeout,playSpeed=1;
@@ -17,43 +17,55 @@ try {renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreferenc
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
 $('stage').appendChild(renderer.domElement);
 const camera=new THREE.OrthographicCamera(-16,16,12,-12,.1,130);
-const ambient=new THREE.HemisphereLight('#a6ccd4','#20252a',.58);scene.add(ambient);
-const keyLight=new THREE.DirectionalLight('#ffcf98',1.65);keyLight.position.set(-9,11,7);keyLight.castShadow=true;keyLight.shadow.mapSize.set(2048,2048);keyLight.shadow.camera.left=-14;keyLight.shadow.camera.right=14;keyLight.shadow.camera.top=14;keyLight.shadow.camera.bottom=-14;keyLight.shadow.normalBias=.05;keyLight.shadow.bias=-.0001;scene.add(keyLight);
-const fill=new THREE.DirectionalLight('#83c4d3',.95);fill.position.set(8,9,-7);scene.add(fill);
+const ambient=new THREE.HemisphereLight('#a6ccd4','#20252a',.8);scene.add(ambient);
+const keyLight=new THREE.DirectionalLight('#ffcf98',2.0);keyLight.position.set(-9,11,7);keyLight.castShadow=true;keyLight.shadow.mapSize.set(2048,2048);keyLight.shadow.camera.left=-14;keyLight.shadow.camera.right=14;keyLight.shadow.camera.top=14;keyLight.shadow.camera.bottom=-14;keyLight.shadow.normalBias=.05;keyLight.shadow.bias=-.0001;scene.add(keyLight);
+const fill=new THREE.DirectionalLight('#83c4d3',1.15);fill.position.set(8,9,-7);scene.add(fill);
 const gold=new THREE.MeshStandardMaterial({color:'#d7b477',metalness:.6,roughness:.35}),teal=new THREE.MeshStandardMaterial({color:'#467d76',roughness:.65}),ink=new THREE.MeshStandardMaterial({color:'#29353a',roughness:1});
 function mesh(geo,mat,x,y,z,parent=scene){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);parent.add(m);return m;}
 const environment=new THREE.Group();
 const backdrop=mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#0b1b24',roughness:1}),0,-.83,0,environment);backdrop.rotation.x=-Math.PI/2;backdrop.receiveShadow=true;backdrop.material.userData.handmade=false;
-const pathCurve=new THREE.CatmullRomCurve3(PATH.map(([x,z])=>new THREE.Vector3(x,.04,z)),false,'catmullrom',.15);
-// The ribbon follows the simulation's exact polyline; circles soften the joins without changing the route.
-const carpet=new THREE.MeshStandardMaterial({color:'#71354e',roughness:1});
-for(let i=1;i<PATH.length;i++){
-  const [ax,az]=PATH[i-1],[bx,bz]=PATH[i],len=Math.hypot(bx-ax,bz-az);
-  const m=mesh(new THREE.BoxGeometry(1.36,.055,len),carpet,(ax+bx)/2,.03,(az+bz)/2,environment);m.rotation.y=Math.atan2(bx-ax,bz-az);m.receiveShadow=true;
-  for(let d=.25;d<len;d+=.62){const t=d/len,px=ax+(bx-ax)*t,pz=az+(bz-az)*t;for(const s of [-1,1]){
-    const stitch=mesh(new THREE.BoxGeometry(.09,.009,.16),gold,px+s*.58*(bz-az)/len,.063,pz-s*.58*(bx-ax)/len,environment);stitch.rotation.y=m.rotation.y;
-  }}
+// One continuous velvet runner, sampled from the same route the toys follow.
+function runner(width,y,material){
+  const positions=[],indices=[];
+  PATH.forEach(([x,z],i)=>{
+    const a=PATH[Math.max(0,i-1)],b=PATH[Math.min(PATH.length-1,i+1)];
+    const dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);
+    for(const side of [-1,1])positions.push(x+side*dz/len*width,y,z-side*dx/len*width);
+    if(i){const n=i*2;indices.push(n-2,n-1,n,n-1,n+1,n);}
+  });
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();
+  const ribbon=mesh(geo,material,0,0,0,environment);ribbon.receiveShadow=true;
 }
-for(const [x,z] of PATH){const round=mesh(new THREE.CylinderGeometry(.68,.68,.055,24),carpet,x,.03,z,environment);round.receiveShadow=true;}
+runner(.65,.025,new THREE.MeshStandardMaterial({color:'#bc9256',roughness:.72,side:THREE.DoubleSide}));
+runner(.59,.033,new THREE.MeshStandardMaterial({color:'#773447',roughness:.94,side:THREE.DoubleSide}));
+runner(.48,.037,new THREE.MeshStandardMaterial({color:'#873b4d',roughness:1,side:THREE.DoubleSide}));
+for(let d=.3;d<PATH_LENGTH;d+=.62){
+  const p=pointAt(d);
+  for(const side of [-1,1]){
+    const stitch=mesh(new THREE.BoxGeometry(.035,.009,.09),gold,p.x+side*.545*Math.cos(p.angle),.048,p.z-side*.545*Math.sin(p.angle),environment);stitch.rotation.y=p.angle;
+  }
+}
 const socketRings=[];
 SOCKETS.forEach(([x,z],i)=>{
-  const pedestal=mesh(new THREE.CylinderGeometry(.82,.94,.14,32),ink,x,.075,z,environment);pedestal.receiveShadow=true;
-  const circle=mesh(new THREE.TorusGeometry(.8,.032,5,36),gold,x,.155,z,environment);circle.rotation.x=Math.PI/2;
-  const inner=mesh(new THREE.TorusGeometry(.59,.012,5,32),gold,x,.155,z,environment);inner.rotation.x=Math.PI/2;
-  const halo=mesh(new THREE.RingGeometry(.83,.89,48),new THREE.MeshBasicMaterial({color:'#e7c58c',transparent:true,opacity:.4,side:THREE.DoubleSide}),x,.17,z);halo.rotation.x=-Math.PI/2;socketRings.push(halo);
+  // Small wind-up mounts belong to the stage instead of looking like UI pucks.
+  const pedestal=mesh(new THREE.CylinderGeometry(.47,.53,.09,12),gold,x,.047,z,environment);pedestal.receiveShadow=true;
+  const inset=mesh(new THREE.CylinderGeometry(.40,.40,.095,24),ink,x,.051,z,environment);inset.receiveShadow=true;
+  for(const side of [-1,1])mesh(new THREE.BoxGeometry(.065,.012,.19),gold,x+side*.31,.105,z,environment);
+  mesh(new THREE.BoxGeometry(.07,.012,.24),gold,x,.105,z,environment);
+  const halo=mesh(new THREE.RingGeometry(.55,.585,48),new THREE.MeshBasicMaterial({color:'#e7c58c',transparent:true,opacity:0,side:THREE.DoubleSide}),x,.11,z);halo.rotation.x=-Math.PI/2;socketRings.push(halo);
   const button=document.createElement('button');button.className='socket';button.textContent=String(i+1);button.dataset.slot=i;button.setAttribute('aria-label',`Socket ${i+1}`);button.onclick=()=>selectSocket(i);$('socket-labels').appendChild(button);
 });
 const stageFloor=bakeStatic(environment);stageFloor.traverse(o=>{if(o.isMesh)o.receiveShadow=true;});handmade(stageFloor);scene.add(stageFloor);
 const rangeRing=mesh(new THREE.RingGeometry(2.59,2.65,64),new THREE.MeshBasicMaterial({color:'#83c4b1',transparent:true,opacity:.35,side:THREE.DoubleSide}),0,.07,0);rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;
-const lightSpot=new THREE.SpotLight('#ffca79',240,18,Math.atan(LIGHT_RADIUS/7),.6,1.1);lightSpot.position.set(-1,7,0);lightSpot.target.position.set(-1,0,0);scene.add(lightSpot,lightSpot.target);
-const lanternGlow=new THREE.PointLight('#ffb862',9,5,2);scene.add(lanternGlow);
+const lightSpot=new THREE.SpotLight('#ffca79',180,18,Math.atan(LIGHT_RADIUS/7),.6,1.1);lightSpot.position.set(-1,7,0);lightSpot.target.position.set(-1,0,0);scene.add(lightSpot,lightSpot.target);
+const lanternGlow=new THREE.PointLight('#ffb862',6,5,2);scene.add(lanternGlow);
 const lightDisc=mesh(new THREE.CircleGeometry(LIGHT_RADIUS,64),new THREE.MeshBasicMaterial({color:'#ecc981',transparent:true,opacity:.07,depthWrite:false}),-1,.083,0);lightDisc.rotation.x=-Math.PI/2;
 const lightRim=mesh(new THREE.RingGeometry(LIGHT_RADIUS-.035,LIGHT_RADIUS,64),new THREE.MeshBasicMaterial({color:'#e4bf76',transparent:true,opacity:.46,depthWrite:false}),-1,.09,0);lightRim.rotation.x=-Math.PI/2;
 const goalLight=new THREE.PointLight('#ffc66e',15,8,2);goalLight.position.set(8,1.7,3.6);scene.add(goalLight);
 const particleGeometry=new THREE.SphereGeometry(.07,5,4),particleMaterial=new THREE.MeshBasicMaterial({color:'#f6d791'});
 const pulseGeometry=new THREE.RingGeometry(.94,1,48);
 const healthGeometry=new THREE.PlaneGeometry(.72,.07),healthBack=new THREE.MeshBasicMaterial({color:'#17232a'}),healthFill=new THREE.MeshBasicMaterial({color:'#e6b581'});
-let ghostProto,dollProto,topProto,musicProto,lantern,goalLantern,presentation;
+let ghostProto,dollProto,topProto,musicProto,lantern,goalLantern,presentation,stageLook;
 let dawnProgress=0;
 const nightColor=new THREE.Color('#0b1921'),dawnColor=new THREE.Color('#544753'),dawnKey=new THREE.Color('#ffe1b0'),nightKey=new THREE.Color('#ffcf98');
 let fps=60,lastUI='',lastTime=performance.now();
@@ -68,8 +80,9 @@ function resize(){
   const sideDock=matchMedia('(max-width:1100px) and (max-height:500px) and (orientation:landscape)').matches;
   $('app').style.setProperty('--bench-height',`${bench.height}px`);
   // Frame the playable area at every window size; scenery may extend past the edges.
-  const portraitTurn=Math.max(0,Math.min(1,(aspect-.55)/.35));
-  camera.position.set(landscape?4:32,landscape?25:50,landscape?34:portraitTurn*25);
+  stageLook?.layout(!landscape);
+  keyLight.position.x=landscape?-9:9;
+  camera.position.set(landscape?3:32,landscape?25:44,landscape?34:0);
   camera.lookAt(0,0,0);camera.updateMatrixWorld();
   const bounds=new THREE.Box3();
   for(const x of [-9.1,9.1])for(const y of [0,2.8])for(const z of [-5.2,5.2]){
@@ -161,7 +174,7 @@ function updateSelection(){
   $('choices').replaceChildren();$('selection-footer').replaceChildren();
   const actions=t?(t.branch?[]:t.type==='top'?['bowling','orbit']:['lullaby','invitation']):['top','music'];
   for(const action of actions){
-    const data=t?upgradeDetails[action]:action==='top'?{name:'Spinning top',icon:'⟳',copy:'Spins through every nearby toy. A little chaos goes a long way.'}:{name:'Music box',icon:'♫',copy:'Slows approaching toys so your tops can finish the job.'};
+    const data=t?upgradeDetails[action]:action==='top'?{name:'Spinning top',icon:'⟳',copy:'Spins through every nearby toy. A little chaos goes a long way.'}:{name:'Gramophone',icon:'♫',copy:'Slows approaching toys so your tops can finish the job.'};
     const cost=t?UPGRADE_COST:COST[action];
     $('choices').appendChild(choice(data.name,data.icon,data.copy,cost,()=>{const ok=t?upgradeTower(game,slot,action):buildTower(game,slot,action);if(ok){chime(660);setTimeout(()=>chime(990,.009),95);const [x,z]=SOCKETS[slot];emit(x,z,12,'#9bdbbd');syncTowers();updateSelection();updateUI(true);}}));
   }
@@ -200,7 +213,7 @@ function updateUI(force=false){
   $('wave-count').textContent=`${6-game.wave} ${6-game.wave===1?'hour':'hours'} until morning`;
   $('next-wave').disabled=fighting||ended;$('next-wave').innerHTML=ended?'The night is over':fighting?'The night is unfolding…':`${game.giftOffer?'Choose a night gift':game.wave?'Ring the next bell':'Begin midnight'} <span>→</span>`;
   updateGiftRibbon();
-  [...$('socket-labels').children].forEach((b,i)=>{const t=game.towers.find(t=>t.slot===i);b.className=`socket ${t?'occupied':'empty'} ${selected===i?'selected':''}`;b.textContent=t?(t.type==='top'?'⟳':'♫'):i+1;b.setAttribute('aria-label',`Socket ${i+1}: ${t?t.type==='top'?'spinning top':'music box':'empty'}${t?.branch?', '+t.branch:''}`);});
+  [...$('socket-labels').children].forEach((b,i)=>{const t=game.towers.find(t=>t.slot===i);b.className=`socket ${t?'occupied':'empty'} ${selected===i?'selected':''}`;b.textContent=t?'':'+';b.setAttribute('aria-label',`Socket ${i+1}: ${t?t.type==='top'?'spinning top':'gramophone':'empty'}${t?.branch?', '+t.branch:''}`);});
   if(selected!==null)updateSelection();
 }
 function start(){startGame(game);audio.setScene(game.phase,game.wave);void audio.unlock();$('intro').hidden=true;$('play-ui').hidden=false;$('socket-labels').hidden=false;syncTowers();updateUI(true);sound(392,.3);setTimeout(()=>sound(587,.35),160);notify('Two toys are ready. Add a defense, then begin midnight.');}
@@ -244,7 +257,7 @@ function processEvents(){
     if(e.type==='clear'){chime(1046,.012);notify(`An hour survived. +${e.reward} brass. Choose your next upgrade.`);sound(523,.3);setTimeout(()=>sound(784,.4),180);if(game.giftOffer)openNightOffer();}
     if(e.type==='end'){
       deselect();$('ending').hidden=false;$('end-kicker').textContent=e.won?'THE MORNING AFTER':'THE CURTAIN FALLS';$('end-title').textContent=e.won?'Here comes the sun.':'One light too few.';
-      $('end-copy').textContent=e.won?'The toys are still again. A little crooked, a little stranger. But the light is yours.':'The toys have taken the stage. Keep paper ghosts in your lantern’s glow near a top. A music box will buy you time.';
+      $('end-copy').textContent=e.won?'The toys are still again. A little crooked, a little stranger. But the light is yours.':'The toys have taken the stage. Keep paper ghosts in your lantern’s glow near a top. A gramophone will buy you time.';
       $('end-stats').textContent=`${e.won?6:Math.max(0,game.wave-1)} HOURS SURVIVED · ${game.kills-game.ghostKills} SHELLS · ${game.ghostKills} GHOSTS`;$('end-gifts').textContent=game.giftHistory.length?GIFT_IDS.filter(id=>game.nightGifts[id]).map(id=>`${giftInfo(id,game.nightGifts[id]).name} ${rankMark(game.nightGifts[id])}`).join(' · '):'';$('restart').focus();sound(e.won?784:147,.8,'sine',.04);
     }
   }game.events.length=0;
@@ -273,20 +286,32 @@ function animate(now){
       o.position.set(e.x,.08+hop,e.z);
       o.rotation.set(asleep?.22:Math.sin(e.age*5)*.055,e.angle,asleep?.19:Math.sin(e.age*9)*.1+kick*.16);
       o.scale.set(s*(1-squash*.45)*birth,s*(1+squash-kick*.08)*birth,s*(1-squash*.45)*birth);
-      const bar=enemyBars.get(e.id);bar.position.set(e.x,s*1.4+.24+hop,e.z);bar.quaternion.copy(camera.quaternion);bar.userData.fill.scale.x=Math.max(0,e.hp/e.maxHp);bar.userData.fill.position.x=-(1-e.hp/e.maxHp)*.36;bar.visible=e.hp<e.maxHp;
+      const bar=enemyBars.get(e.id);bar.position.set(e.x,s*1.72+.24+hop,e.z);bar.quaternion.copy(camera.quaternion);bar.userData.fill.scale.x=Math.max(0,e.hp/e.maxHp);bar.userData.fill.position.x=-(1-e.hp/e.maxHp)*.36;bar.visible=e.hp<e.maxHp;
     }
   }
-  for(const t of game.towers){const o=towerModels.get(t.id);if(!o)continue;const lit=onLight(game,{x:o.position.x,z:o.position.z});if(t.type==='top'){o.rotation.y=clock*(lit?12:6)*(giftInfo('overwound',game.nightGifts.overwound)?.rate??1);o.rotation.z=Math.sin(clock*5)*.035;o.scale.setScalar(t.branch==='orbit'?1.2:1.12);if(t.branch==='bowling')o.rotation.x=Math.sin(clock*3)*.08;}else{o.scale.setScalar(1.12);o.rotation.z=Math.sin(clock*(lit?9:5))*.02;o.position.y=.18+Math.sin(clock*3)*.018;if(game.phase==='wave'&&Math.floor(clock*1.4)!==o.userData.lastBeat){o.userData.lastBeat=Math.floor(clock*1.4);pulse(o.position.x,o.position.z,t.branch==='invitation'?3.8:3.05,t.branch==='lullaby'?'#b6a9de':'#93b7c5');}}}
+  for(const t of game.towers){const o=towerModels.get(t.id);if(!o)continue;const lit=onLight(game,{x:o.position.x,z:o.position.z});if(t.type==='top'){o.rotation.y=clock*(lit?12:6)*(giftInfo('overwound',game.nightGifts.overwound)?.rate??1);o.rotation.z=Math.sin(clock*5)*.035;o.scale.setScalar(t.branch==='orbit'?1.2:1.12);if(t.branch==='bowling')o.rotation.x=Math.sin(clock*3)*.08;}else{o.scale.setScalar(1.12);o.rotation.y=stageWidth>=stageHeight?.2:Math.PI/2+.2;o.rotation.z=Math.sin(clock*(lit?9:5))*.02;o.position.y=.18+Math.sin(clock*3)*.018;if(game.phase==='wave'&&Math.floor(clock*1.4)!==o.userData.lastBeat){o.userData.lastBeat=Math.floor(clock*1.4);pulse(o.position.x,o.position.z,t.branch==='invitation'?3.8:3.05,t.branch==='lullaby'?'#b6a9de':'#93b7c5');}}}
   for(let i=effects.length-1;i>=0;i--){const p=effects[i];if(game.phase==='paused')continue;p.life-=dt;if(p.ring){p.mesh.scale.setScalar(p.r*(1-p.life/p.maxLife));p.mesh.material.opacity=.28*p.life/p.maxLife;}else{p.vy-=dt*8;p.mesh.position.x+=p.vx*dt;p.mesh.position.z+=p.vz*dt;p.mesh.position.y+=p.vy*dt;p.mesh.scale.setScalar(Math.min(1,p.life*3));}if(p.life<=0){scene.remove(p.mesh);p.mesh.material.dispose();effects.splice(i,1);}}
   // Reuse a small pool of top projectiles; their positions come directly from simulation.
   while(projectileModels.length<game.shots.length){const o=topProto.clone(true);o.scale.setScalar(.6);scene.add(o);projectileModels.push(o);}
   projectileModels.forEach((o,i)=>{const s=game.shots[i];o.visible=!!s;if(s){o.position.set(s.x,.2,s.z);o.rotation.y=clock*18;}});
-  [...$('socket-labels').children].forEach((b,i)=>{const [x,z]=SOCKETS[i];proj.set(x,.3,z).project(camera);b.style.left=`${(proj.x*.5+.5)*stageWidth}px`;b.style.top=`${(-proj.y*.5+.5)*stageHeight+17}px`;socketRings[i].material.opacity=selected===i?.8:.22+Math.sin(clock*2+i)*.07;});
+  [...$('socket-labels').children].forEach((b,i)=>{
+    const [x,z]=SOCKETS[i],tower=game.towers.find(t=>t.slot===i);
+    proj.set(x,.11,z).project(camera);const baseY=(-proj.y*.5+.5)*stageHeight;
+    b.style.left=`${(proj.x*.5+.5)*stageWidth}px`;
+    if(tower){
+      // The whole toy is tappable; no badge hides its face or horn.
+      proj.set(x,tower.type==='top'?1.98:2.85,z).project(camera);
+      const topY=(-proj.y*.5+.5)*stageHeight;
+      b.style.top=`${(baseY+topY)/2}px`;b.style.height=`${Math.max(48,baseY-topY+16)}px`;
+      b.style.width=`${Math.max(48,1.8*stageWidth/(camera.right-camera.left))}px`;
+    }else{b.style.top=`${baseY}px`;b.style.height='';b.style.width='';}
+    socketRings[i].material.opacity=selected===i?.85:0;
+  });
   const dawnTarget=game.phase==='won'?1:Math.max(0,(game.wave-4)/3)*.48;
   if(game.phase!=='paused')dawnProgress+=(dawnTarget-dawnProgress)*Math.min(1,dt*.35);
   const dawn=dawnProgress;
-  scene.background.lerpColors(nightColor,dawnColor,dawn);scene.fog.color.copy(scene.background);ambient.intensity=.58+dawn*.85;keyLight.color.copy(nightKey).lerp(dawnKey,dawn);keyLight.intensity=1.65+dawn*1.4;
-  lightSpot.intensity=240+Math.sin(clock*7)*6;lanternGlow.intensity=9+Math.sin(clock*11)*.35;
+  scene.background.lerpColors(nightColor,dawnColor,dawn);scene.fog.color.copy(scene.background);ambient.intensity=.8+dawn*.85;keyLight.color.copy(nightKey).lerp(dawnKey,dawn);keyLight.intensity=2+dawn*1.4;
+  lightSpot.intensity=180+Math.sin(clock*7)*6;lanternGlow.intensity=6+Math.sin(clock*11)*.35;
   presentation?.update(game,clock,dt,camera);nightView.update(game,clock);
   updateUI();renderer.render(scene,camera);
   window.__GAME__={frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch,range:towerRange(game,t)})),lightRadius:LIGHT_RADIUS,nightGifts:{...game.nightGifts},giftOffer:game.giftOffer,giftHistory:game.giftHistory,encoreBursts:game.encoreBursts,ghostlightsCreated:game.ghostlightsCreated,ghostlights:game.ghostlights.map(p=>({x:p.x,z:p.z,radius:p.radius,life:p.life}))};
@@ -296,7 +321,8 @@ const projectileModels=[];
 try {
   const loaded=await Promise.all(['stage','doll','top','music','lantern','ghost'].map(name=>ASSET(`./assets/${name}.js`)));
   for(let i=0;i<loaded.length;i++)if(!loaded[i].children.length)throw new Error(`Asset failed to load: ${['stage','doll','top','music','lantern','ghost'][i]}`);
-  await dressStage(loaded[0],scene,renderer);
+  stageLook=await dressStage(loaded[0],scene,renderer);
+  resize();
   loaded.forEach(handmade);ghostProto=loaded[5];
   const stage=loaded[0];stage.position.y=-.7;scene.add(stage);[dollProto,topProto,musicProto]=loaded.slice(1,4);lantern=loaded[4];scene.add(lantern);goalLantern=lantern.clone(true);goalLantern.scale.setScalar(1.4);goalLantern.position.set(8,.12,3.6);scene.add(goalLantern);
   presentation=createPresentation(scene,topProto);

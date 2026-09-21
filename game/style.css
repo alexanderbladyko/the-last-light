@@ -180,3 +180,11 @@ body:has(#ghost-cue:not([hidden])) #toast{top:216px}
   .ghost-cue{top:72px;left:auto;right:20px;transform:none}
   .vignette{background:radial-gradient(ellipse at 50% 48%,transparent 54%,#09081466 100%);box-shadow:none}
 }
+
+/* The brass mount is the placeholder; its label is just a quiet, generous hit target. */
+.socket,.socket.empty,.socket.occupied{width:48px;height:48px;border:0;border-radius:50%;background:transparent;box-shadow:none;color:#f3d7a3;font:400 24px/1 Georgia,serif;text-shadow:0 1px 4px #101c20;outline-offset:2px}
+.socket.empty{opacity:.78}
+.socket.occupied{width:56px;height:56px}
+.socket:hover,.socket.selected,.socket:focus-visible{background:#ead1a51c;box-shadow:0 0 0 1px #e3bf7899;opacity:1}
+
+.socket.occupied:hover,.socket.occupied.selected{background:transparent;box-shadow:none}

@@ -133,3 +133,27 @@ All 48 existing tests and asset contracts pass. The build remains about 2.23 MB 
 - Verified all six sockets at 1280 × 720, 744 × 922 and 844 × 390. Selected Wide orbit and began combat successfully in landscape.
 - Phone portrait retains the existing camera orientation; desktop and tablet portrait rotate gradually with the aspect ratio.
 - All 48 tests and all six asset contracts pass. Physical iPhone validation still needs a published build.
+
+
+## Curved runner and larger toys — September 21
+
+Replaced the rigid carpet joins with a continuous ribbon. The shared route rounds
+corners by up to 1.1 m; its entrance, exit and six tower locations stay fixed.
+The route endpoint now clamps exactly at and beyond its length. Two Lullaby test
+fixtures moved from distance 23.3 to 21.8 so their toys begin in the gramophone's
+listening area on the shorter route. Attack, currency, waves and gift rules did
+not change. All 48 tests pass, including the original starter/stationary/ambush
+losses, moving-lantern win, and all four full-night gift strategies with 20 ghost
+kills. Larger corner radii were discarded because they upset that balance.
+
+The six procedural asset contracts pass: 19,136 unique triangles, about 2.93 MB
+for the standalone game folder. Doll detail uses 12 × 8 spheres so the larger
+faces and flowers do not add excessive per-enemy geometry.
+
+Inspected the actual game at 1280 × 720, 744 × 922, 390 × 844 and 844 × 390.
+Portrait no longer puts the backdrop along the right edge. The route, six build
+points and goal fill the playing area; HUD and phone dock remain reachable.
+Cleared midnight, opened/deferred a gift, and bought a top from the new small
+mount. The initial portrait shadow over entering dolls was corrected by moving
+the key light to the audience side. No browser errors or warnings were observed.
+These are browser viewport checks, not measurements on a physical iPhone.

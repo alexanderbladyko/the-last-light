@@ -4,7 +4,7 @@ const gifts = {
   encore: [6, 10, 14].map((damage, i) => ({
     id: 'encore', name: 'Encore', icon: '✧', rank: i + 1, damage, radius: 2.25,
     copy: `Striking a sleeping toy sends a ${damage}-damage shockwave through nearby toys.`,
-    note: 'Needs a Lullaby music box. Splash wakes sleepers without making another shockwave.'
+    note: 'Needs a Lullaby gramophone. Splash wakes sleepers without making another shockwave.'
   })),
   overwound: [1, 2, 3].map(rank => ({
     id: 'overwound', name: 'Overwound', icon: '↻', rank, rate: 1 + rank * .4, reach: 1 - rank * .1,

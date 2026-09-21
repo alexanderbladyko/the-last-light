@@ -61,9 +61,9 @@ export function createPresentation(scene, topProto) {
   const ink = new THREE.MeshStandardMaterial({color:'#151726', roughness:1});
   const bulb = new THREE.MeshBasicMaterial({color:'#ffe2a0'});
   const lilac = new THREE.MeshBasicMaterial({color:'#c7b9f1', transparent:true, opacity:.85});
-  const shellMat = new THREE.MeshStandardMaterial({color:'#9b4962', roughness:.82, side:THREE.DoubleSide});
+  const shellMat = new THREE.MeshStandardMaterial({color:'#a74455', roughness:.82, side:THREE.DoubleSide});
   const paperGeometry=new THREE.PlaneGeometry(.25,.32),paperMaterial=new THREE.MeshStandardMaterial({color:'#f5e9ce',roughness:1,side:THREE.DoubleSide});
-  const shellGeometry = new THREE.SphereGeometry(.45, 12, 8, 0, Math.PI);
+  const shellGeometry = new THREE.SphereGeometry(.6, 12, 8, 0, Math.PI);
   const noteGeometry = new THREE.SphereGeometry(.075, 6, 4);
   const poolGeometry = new THREE.PlaneGeometry(1, 1);
   function add(geometry, material, x, y, z, parent = decor) {
@@ -83,16 +83,7 @@ export function createPresentation(scene, topProto) {
     const s = new THREE.Sprite(material); s.position.set(x,y,z); s.scale.setScalar(size); scene.add(s); return s;
   }
 
-  // A miniature proscenium: hanging paper stars, brass ribs and warm footlights.
-  for(const x of [-9.48, 9.48]) {
-    add(new THREE.CylinderGeometry(.09,.09,5.2,8),brass,x,2.7,-6.35);
-    star(.27,x,5.55,-6.3);
-  }
-  for(let i=0;i<7;i++) {
-    const x=-6.6+i*2.2, y=3.1+(i%3)*.56;
-    add(new THREE.CylinderGeometry(.009,.009,5.35-y,4),brass,x,(5.35+y)/2,-6.8);
-    star(.19+(i%2)*.09,x,y,-6.77);
-  }
+  // Warm bulbs along the apron of the stage.
   const glows=[];
   for(const x of [-8,-4,0,4,8]) {
     const housing=add(new THREE.SphereGeometry(.22,12,8,0,Math.PI*2,0,Math.PI/2),ink,x,.11,6.68);
@@ -102,14 +93,6 @@ export function createPresentation(scene, topProto) {
     const pool=add(poolGeometry,new THREE.MeshBasicMaterial({map:glowMap,color:'#efaf66',transparent:true,opacity:.27,depthWrite:false,blending:THREE.AdditiveBlending}),x,.074,5.92);
     pool.rotation.x=-Math.PI/2;pool.scale.set(2.4,3.7,1);
   }
-  // Small irregular scratches and nails make the floor feel assembled by hand.
-  const scratch=new THREE.MeshStandardMaterial({color:'#6b8177',roughness:1});
-  for(let i=0;i<95;i++) {
-    const x=-9.4+((i*7.139)%18.8), z=-5.8+((i*3.713)%12.2);
-    add(new THREE.BoxGeometry(.014,.006,.13+(i%5)*.11),scratch,x,.012,z);
-  }
-  for(let i=0;i<25;i++)for(const z of [-7.15,-2.6,2.4,7.14])
-    add(new THREE.CylinderGeometry(.026,.026,.006,6),ink,-9.6+i*.8,.014,z);
   const merged=bakeStatic(decor); merged.traverse(o=>{if(o.isMesh)o.receiveShadow=true;}); scene.add(merged);
 
   const glow=sprite('#ffc176',2.8,-1,.95,0), goalGlow=sprite('#ffbd70',3.7,8,1.5,3.6);
@@ -147,7 +130,7 @@ export function createPresentation(scene, topProto) {
         const chevron=new THREE.Group();for(const s of [-1,1]){const bar=add(new THREE.BoxGeometry(.035,.025,.25),brass.clone(),s*.08,.035,.7+i*.18,chevron);bar.rotation.y=-s*.55;}root.add(chevron);
       }
     } else if(t.branch==='lullaby') {
-      const moon=add(moonGeometry.clone(),lilac.clone(),0,1.65,0,root);moon.scale.setScalar(1.6);a.moon=moon;
+      const moon=add(moonGeometry.clone(),lilac.clone(),0,2.55,0,root);moon.scale.setScalar(1.6);a.moon=moon;
     } else if(t.branch==='invitation') {
       const halo=add(new THREE.TorusGeometry(.45,.02,5,32),new THREE.MeshBasicMaterial({color:'#dfb985',transparent:true,opacity:.7}),0,1.15,0,root);a.halo=halo;
     }
@@ -186,13 +169,13 @@ export function createPresentation(scene, topProto) {
     for(const t of game.towers) {
       const a=towerAccent(t),lit=onLight(game,{x:a.root.position.x,z:a.root.position.z});
       a.orbs.forEach((o,i)=>{const angle=clock*3.8+i*Math.PI;o.position.set(Math.sin(angle)*1.38,.12+Math.sin(clock*6+i)*.06,Math.cos(angle)*1.38);o.rotation.y=-clock*14;});
-      if(a.moon){a.moon.quaternion.copy(camera.quaternion);a.moon.position.y=1.65+Math.sin(clock*2)*.1;}
+      if(a.moon){a.moon.quaternion.copy(camera.quaternion);a.moon.position.y=2.55+Math.sin(clock*2)*.1;}
       if(a.halo){a.halo.rotation.set(.5,clock*.7,0);a.halo.position.y=1.15+Math.sin(clock*2)*.07;}
       const beat=Math.floor(clock*(lit?2.1:1.15));
       if(t.type==='music'&&game.phase==='wave'&&a.lastNote!==beat){a.lastNote=beat;note(a.root.position.x,a.root.position.z,t.branch==='lullaby'?'#b9a4ef':t.branch==='invitation'?'#e4bc88':'#8dcabd');}
     }
     for(const id of sleepers.keys())if(!game.enemies.some(e=>e.id===id&&e.sleep>0)){scene.remove(sleepers.get(id));sleepers.delete(id);}
-    for(const e of game.enemies)if(e.sleep>0){let s=sleepers.get(e.id);if(!s){s=new THREE.Mesh(moonGeometry,lilac);scene.add(s);sleepers.set(e.id,s);}s.position.set(e.x,(e.kind==='ghost'?2.65:1.35+[.6,.85,1.15][e.tier]*.65)+Math.sin(clock*2)*.09,e.z);s.quaternion.copy(camera.quaternion);}
+    for(const e of game.enemies)if(e.sleep>0){let s=sleepers.get(e.id);if(!s){s=new THREE.Mesh(moonGeometry,lilac);scene.add(s);sleepers.set(e.id,s);}s.position.set(e.x,(e.kind==='ghost'?2.65:[.69,.96,1.25][e.tier]*1.72+.35)+Math.sin(clock*2)*.09,e.z);s.quaternion.copy(camera.quaternion);}
     const links=new Set();
     for(const t of game.towers.filter(t=>t.branch==='invitation')) {
       const [x,z]=SOCKETS[t.slot];

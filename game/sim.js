@@ -1,6 +1,7 @@
 import {GIFT_HOURS,giftInfo} from './night-gifts.js';
 // Pure simulation: renderer and input both consume this state, never drive rules themselves.
-export const PATH=[[-8,-4.1],[-5,-4.1],[-5,2.7],[0,2.7],[0,-2.8],[5.3,-2.8],[5.3,3.6],[8,3.6]];
+import {PATH} from './route.js';
+export {PATH};
 export const SOCKETS=[[-6.9,-1],[-2.7,0.7],[-2.7,-3.5],[2.7,-0.4],[3,3.8],[7.3,0.4]];
 export const COST={top:36,music:42};
 export const UPGRADE_COST=42;
@@ -23,7 +24,10 @@ export function canDamageEnemy(g,e){return !e.dead&&(e.kind!=='ghost'||onLight(g
 const lengths=PATH.slice(1).map((p,i)=>Math.hypot(p[0]-PATH[i][0],p[1]-PATH[i][1]));
 export const PATH_LENGTH=lengths.reduce((a,b)=>a+b,0);
 export function pointAt(distance){
-  let d=Math.max(0,Math.min(PATH_LENGTH,distance));
+  if(distance>=PATH_LENGTH){
+    const a=PATH.at(-2),b=PATH.at(-1);return {x:b[0],z:b[1],angle:Math.atan2(b[0]-a[0],b[1]-a[1])};
+  }
+  let d=Math.max(0,distance);
   for(let i=0;i<lengths.length;i++){
     if(d<=lengths[i]||i===lengths.length-1){const t=d/lengths[i];return {x:PATH[i][0]+(PATH[i+1][0]-PATH[i][0])*t,z:PATH[i][1]+(PATH[i+1][1]-PATH[i][1])*t,angle:Math.atan2(PATH[i+1][0]-PATH[i][0],PATH[i+1][1]-PATH[i][1])};}
     d-=lengths[i];
