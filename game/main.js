@@ -59,13 +59,41 @@ let fps=60,lastUI='',lastTime=performance.now();
 const raycaster=new THREE.Raycaster(),floor=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
 const proj=new THREE.Vector3();
 
+let stageWidth=innerWidth,stageHeight=innerHeight;
 function resize(){
-  const w=innerWidth,h=innerHeight,aspect=w/h;renderer.setSize(w,h);const portrait=aspect<.8;
-  const viewWidth=portrait?23.8:Math.max(27,aspect*26.5),viewHeight=viewWidth/aspect;
-  camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=viewHeight/2;camera.bottom=-viewHeight/2;
-  camera.position.set(portrait?3:13,portrait?31:27,portrait?29:31);camera.lookAt(0,portrait?-1:-.4,0);camera.updateProjectionMatrix();camera.updateMatrixWorld();
+  const w=$('app').clientWidth,h=$('app').clientHeight,aspect=w/h;
+  stageWidth=w;stageHeight=h;renderer.setSize(w,h);
+  const mobile=matchMedia('(max-width:600px), (max-width:1100px) and (max-height:500px)').matches;
+  if(mobile){
+    const landscape=w>h,bench=$('workbench').getBoundingClientRect();
+    $('app').style.setProperty('--bench-height',`${bench.height}px`);
+    // Fit the action, allowing the decorative edges of the theatre to bleed off-screen.
+    camera.position.set(landscape?6:32,landscape?27:50,landscape?34:0);
+    camera.lookAt(0,0,0);camera.updateMatrixWorld();
+    const bounds=new THREE.Box3();
+    for(const x of [-9.1,9.1])for(const y of [0,2.8])for(const z of [-5.2,5.2]){
+      bounds.expandByPoint(new THREE.Vector3(x,y,z).applyMatrix4(camera.matrixWorldInverse));
+    }
+    const hud=document.querySelector('.hud').getBoundingClientRect();
+    const left=12,top=hud.bottom+10,right=landscape?(bench.width?bench.left-16:w-220):w-12;
+    const bottom=landscape?h-12:(bench.height?bench.top-18:h-150);
+    const scale=Math.min((right-left)/(bounds.max.x-bounds.min.x),Math.max(100,bottom-top)/(bounds.max.y-bounds.min.y));
+    const viewWidth=w/scale,viewHeight=h/scale;
+    camera.left=(bounds.min.x+bounds.max.x)/2-(left+right)/2/scale;
+    camera.right=camera.left+viewWidth;
+    camera.top=(bounds.min.y+bounds.max.y)/2+(top+bottom)/2/scale;
+    camera.bottom=camera.top-viewHeight;
+  }else{
+    const portrait=aspect<.8,viewWidth=portrait?23.8:Math.max(27,aspect*26.5),viewHeight=viewWidth/aspect;
+    camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=viewHeight/2;camera.bottom=-viewHeight/2;
+    camera.position.set(portrait?3:13,portrait?31:27,portrait?29:31);camera.lookAt(0,portrait?-1:-.4,0);
+  }
+  camera.updateProjectionMatrix();camera.updateMatrixWorld();
 }
-addEventListener('resize',resize);resize();
+addEventListener('resize',resize);
+const layoutObserver=new ResizeObserver(resize);
+for(const element of [$('app'),document.querySelector('.hud'),$('workbench')])layoutObserver.observe(element);
+resize();
 function notify(message){$('toast').textContent=message;$('toast').classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>$('toast').classList.remove('show'),3400);}
 let audioStorage=null;try{audioStorage=window.localStorage;}catch{}
 const audio=new TheatreAudio({storage:audioStorage,onChange:syncAudioUI});
@@ -156,6 +184,7 @@ function updateUI(force=false){
   const signature=[ghosts.length,litGhosts,game.phase,game.wave,game.lives,game.coins,game.enemies.length,game.spawned,selected,game.giftOffer,...Object.values(game.nightGifts),game.ghostlights.length].join(':');if(!force&&signature===lastUI)return;lastUI=signature;
   $('lives').textContent=game.lives;$('coins').textContent=game.coins;
   const displayPhase=game.phase==='paused'?priorPhase:game.phase;
+  $('app').dataset.phase=displayPhase;
   const displayHour=displayPhase==='won'?6:displayPhase==='build'?game.wave:Math.max(0,game.wave-1);
   $('hour').innerHTML=`${displayHour===0?'12':String(displayHour).padStart(2,'0')}:00 <span>AM</span>`;
   $('hour-label').textContent=displayPhase==='won'?'MORNING HAS ARRIVED':displayPhase==='lost'?'THE CURTAIN FALLS':displayPhase==='wave'?'KEEP THE LIGHT BURNING':'A MOMENT TO PREPARE';
@@ -256,7 +285,7 @@ function animate(now){
   // Reuse a small pool of top projectiles; their positions come directly from simulation.
   while(projectileModels.length<game.shots.length){const o=topProto.clone(true);o.scale.setScalar(.6);scene.add(o);projectileModels.push(o);}
   projectileModels.forEach((o,i)=>{const s=game.shots[i];o.visible=!!s;if(s){o.position.set(s.x,.2,s.z);o.rotation.y=clock*18;}});
-  [...$('socket-labels').children].forEach((b,i)=>{const [x,z]=SOCKETS[i];proj.set(x,.3,z).project(camera);b.style.left=`${(proj.x*.5+.5)*innerWidth}px`;b.style.top=`${(-proj.y*.5+.5)*innerHeight+17}px`;socketRings[i].material.opacity=selected===i?.8:.22+Math.sin(clock*2+i)*.07;});
+  [...$('socket-labels').children].forEach((b,i)=>{const [x,z]=SOCKETS[i];proj.set(x,.3,z).project(camera);b.style.left=`${(proj.x*.5+.5)*stageWidth}px`;b.style.top=`${(-proj.y*.5+.5)*stageHeight+17}px`;socketRings[i].material.opacity=selected===i?.8:.22+Math.sin(clock*2+i)*.07;});
   const dawnTarget=game.phase==='won'?1:Math.max(0,(game.wave-4)/3)*.48;
   if(game.phase!=='paused')dawnProgress+=(dawnTarget-dawnProgress)*Math.min(1,dt*.35);
   const dawn=dawnProgress;
