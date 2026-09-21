@@ -64,31 +64,26 @@ let stageWidth=innerWidth,stageHeight=innerHeight;
 function resize(){
   const w=$('app').clientWidth,h=$('app').clientHeight,aspect=w/h;
   stageWidth=w;stageHeight=h;renderer.setSize(w,h);
-  const mobile=matchMedia('(max-width:600px), (max-width:1100px) and (max-height:500px)').matches;
-  if(mobile){
-    const landscape=w>h,bench=$('workbench').getBoundingClientRect();
-    $('app').style.setProperty('--bench-height',`${bench.height}px`);
-    // Fit the action, allowing the decorative edges of the theatre to bleed off-screen.
-    camera.position.set(landscape?6:32,landscape?27:50,landscape?34:0);
-    camera.lookAt(0,0,0);camera.updateMatrixWorld();
-    const bounds=new THREE.Box3();
-    for(const x of [-9.1,9.1])for(const y of [0,2.8])for(const z of [-5.2,5.2]){
-      bounds.expandByPoint(new THREE.Vector3(x,y,z).applyMatrix4(camera.matrixWorldInverse));
-    }
-    const hud=document.querySelector('.hud').getBoundingClientRect();
-    const left=12,top=hud.bottom+10,right=landscape?(bench.width?bench.left-16:w-220):w-12;
-    const bottom=landscape?h-12:(bench.height?bench.top-18:h-150);
-    const scale=Math.min((right-left)/(bounds.max.x-bounds.min.x),Math.max(100,bottom-top)/(bounds.max.y-bounds.min.y));
-    const viewWidth=w/scale,viewHeight=h/scale;
-    camera.left=(bounds.min.x+bounds.max.x)/2-(left+right)/2/scale;
-    camera.right=camera.left+viewWidth;
-    camera.top=(bounds.min.y+bounds.max.y)/2+(top+bottom)/2/scale;
-    camera.bottom=camera.top-viewHeight;
-  }else{
-    const portrait=aspect<.8,viewWidth=portrait?23.8:Math.max(26,aspect*23.5),viewHeight=viewWidth/aspect;
-    camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=viewHeight/2;camera.bottom=-viewHeight/2;
-    camera.position.set(portrait?3:13,portrait?31:27,portrait?29:31);camera.lookAt(0,portrait?-1:-.4,0);
+  const landscape=w>=h,bench=$('workbench').getBoundingClientRect();
+  const sideDock=matchMedia('(max-width:1100px) and (max-height:500px) and (orientation:landscape)').matches;
+  $('app').style.setProperty('--bench-height',`${bench.height}px`);
+  // Frame the playable area at every window size; scenery may extend past the edges.
+  const portraitTurn=Math.max(0,Math.min(1,(aspect-.55)/.35));
+  camera.position.set(landscape?4:32,landscape?25:50,landscape?34:portraitTurn*25);
+  camera.lookAt(0,0,0);camera.updateMatrixWorld();
+  const bounds=new THREE.Box3();
+  for(const x of [-9.1,9.1])for(const y of [0,2.8])for(const z of [-5.2,5.2]){
+    bounds.expandByPoint(new THREE.Vector3(x,y,z).applyMatrix4(camera.matrixWorldInverse));
   }
+  const hud=document.querySelector('.hud').getBoundingClientRect();
+  const left=16,top=hud.bottom+12,right=sideDock?(bench.width?bench.left-16:w-220):w-16;
+  const bottom=sideDock?h-16:(bench.height?bench.top-16:h-116);
+  const scale=Math.min((right-left)/(bounds.max.x-bounds.min.x),Math.max(100,bottom-top)/(bounds.max.y-bounds.min.y));
+  const viewWidth=w/scale,viewHeight=h/scale;
+  camera.left=(bounds.min.x+bounds.max.x)/2-(left+right)/2/scale;
+  camera.right=camera.left+viewWidth;
+  camera.top=(bounds.min.y+bounds.max.y)/2+(top+bottom)/2/scale;
+  camera.bottom=camera.top-viewHeight;
   camera.updateProjectionMatrix();camera.updateMatrixWorld();
 }
 addEventListener('resize',resize);

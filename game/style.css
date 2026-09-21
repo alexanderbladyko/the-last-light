@@ -111,7 +111,7 @@ body:has(#ghost-cue:not([hidden])) #toast{top:216px}
 }
 
 /* Phone play uses the screen for the board, with controls in a compact dock. */
-@media(max-width:600px), (max-width:1100px) and (max-height:500px){
+@media(max-width:850px) and (orientation:portrait), (max-width:600px), (max-width:1100px) and (max-height:500px){
   .hud{padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));padding-top:max(8px,env(safe-area-inset-top));gap:8px}
   .brand,.night-clock .eyebrow,.stage-caption,.light-note,.control-note{display:none}
   .night-clock{position:static;transform:none;text-align:left;flex-shrink:0}
@@ -159,3 +159,24 @@ body:has(#ghost-cue:not([hidden])) #toast{top:216px}
 @media(max-width:1100px) and (max-height:360px) and (orientation:landscape){.ghost-cue span{display:none}}
 
 @media(max-width:390px){.hud{gap:4px}.resources{gap:4px}.resource{gap:2px}.resource-icon{font-size:18px}.resource b{font-size:18px}#hour{font-size:21px}}
+
+
+/* Keep the board as the working surface in desktop and tablet windows, too. */
+@media(min-width:601px) and (min-height:501px){
+  .stage-caption,.light-note,.control-note{display:none}
+  .hud{padding:10px 20px;background:linear-gradient(#101a22e6,transparent)}
+  .brand-star,.brand .eyebrow{display:none}.brand h1{font-size:22px;margin:0}
+  .night-clock{position:static;transform:none;text-align:center}.night-clock .eyebrow{display:none}
+  #hour{font-size:25px}#clock-dots{margin-top:2px}
+  .resources{gap:10px}.resources .icon-button{width:44px;height:44px}
+  .workbench{left:20px;right:20px;bottom:12px;padding:12px 16px;max-width:none;display:flex;align-items:center;gap:16px}
+  .wave-info strong,.workbench-end>span{display:none}
+  .wave-info .eyebrow{font-size:10px;letter-spacing:1px}
+  #wave-hint,#wave-advice{font-size:12px;line-height:1.4;max-width:none}#wave-advice{margin-top:3px}
+  .workbench-end{margin:0;flex-shrink:0}.workbench-end .primary{min-height:44px;min-width:180px;padding:12px 18px}
+  #app[data-phase="wave"] .workbench-end{display:none}
+  .selection,body:has(#night-gifts:not([hidden])) .selection{bottom:calc(var(--bench-height,92px) + 26px);max-height:calc(100dvh - var(--bench-height,92px) - 112px)}
+  #toast,body:has(#ghost-cue:not([hidden])) #toast{top:auto;bottom:calc(var(--bench-height,92px) + 24px)}
+  .ghost-cue{top:72px;left:auto;right:20px;transform:none}
+  .vignette{background:radial-gradient(ellipse at 50% 48%,transparent 54%,#09081466 100%);box-shadow:none}
+}

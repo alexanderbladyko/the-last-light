@@ -124,3 +124,12 @@ An iPhone screenshot showed that the previous landscape layout left most of the 
 Verified in the local browser at 844 × 390, 740 × 330, 390 × 844, and 360 × 640. All six sockets and the bell remain accessible; short landscape preparation text can scroll inside its dock while the bell stays visible. Portrait joystick placement leaves the goal clear. Dragging the 360 × 640 joystick moved the lantern from [-1, 0] to [-2.79, -1.44]. Selected Wide orbit, cleared midnight with 12 light, chose Ghostlight, and started hour two; ghost visibility and the joystick remained separate at 740 × 330. Upgrade panels, the night-gift offer, and pause/rotation remained accessible. The standalone build was checked in landscape, portrait, and at 1280 × 720 desktop. No browser errors or warnings were observed.
 
 All 48 existing tests and asset contracts pass. The build remains about 2.23 MB uncompressed with unchanged model geometry. This pass uses browser viewport checks; the updated layout still needs the user's physical iPhone check.
+
+
+## September 21 — framing correction
+
+- Fit the playable bounds at every viewport size instead of using a distant fixed desktop camera. Decorative scenery can extend beyond the viewport.
+- Compact the desktop dock and header; apply portrait controls to narrow desktop/tablet windows up to 850 px.
+- Verified all six sockets at 1280 × 720, 744 × 922 and 844 × 390. Selected Wide orbit and began combat successfully in landscape.
+- Phone portrait retains the existing camera orientation; desktop and tablet portrait rotate gradually with the aspect ratio.
+- All 48 tests and all six asset contracts pass. Physical iPhone validation still needs a published build.
