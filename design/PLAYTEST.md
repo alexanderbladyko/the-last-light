@@ -157,3 +157,33 @@ Cleared midnight, opened/deferred a gift, and bought a top from the new small
 mount. The initial portrait shadow over entering dolls was corrected by moving
 the key light to the audience side. No browser errors or warnings were observed.
 These are browser viewport checks, not measurements on a physical iPhone.
+
+
+## Aesthetic correction — September 21
+
+Addressed feedback that the larger board was readable but aesthetically worse.
+Preserved the route, mounts, touch targets, gameplay and portrait framing. The
+doll now uses an original painted cylindrical wrap on a turned body; the top
+reuses its floral lacquer, and the gramophone has an original gilt front panel.
+The large cream lantern block is replaced by an open bronze cage and visible
+amber flame. Reduced overhead spotlight intensity, restored floor texture
+contrast, and added a prefiltered reflection environment generated once for brass.
+No new real-time shadow pass or full-screen postprocessing was added.
+
+The backdrop now has sculpted velvet folds, layered paper buildings, swinging
+stars and a mechanical clock that follows the displayed hour, including pause
+and dawn. Static clock parts are merged; its hour hand remains separate.
+The physical decorative moon from the first local draft was removed because the
+existing painting already contains one. The first portrait camera angle reduced
+board size, so its previous larger framing was restored before delivery.
+
+All 48 simulation/audio tests pass. Six procedural asset contracts pass with
+14,872 unique triangles, down from 19,136 in the prior pass. Browser inspection
+covered 1280 × 720 desktop, 390 × 844 portrait and 844 × 390 landscape. Painted
+faces follow the route correctly and midnight clears normally. The final starter
+scene reports 74 draws / 36,828 rendered triangles. A reflection blur warning
+seen in the first draft was corrected by reducing its filter radius. These are
+desktop browser viewport checks, not physical iPhone performance measurements.
+
+The two new image textures ship at 1024 × 512. Prompts, original paths, integration
+details and shipped file paths are recorded in `PAINTED-TOYS.md`.

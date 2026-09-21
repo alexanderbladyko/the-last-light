@@ -53,3 +53,13 @@ keeps the wide theatre view. The floor texture is quieter, the key/fill brighter
 and the moving lamp less overexposed. Upright scenery is separate from the shallow
 platform so it can face the audience after rotation. Asset modules stay pure
 constructor geometry, with no new raster files or external models.
+
+
+## Aesthetic correction — painted miniature
+
+Readability is retained, but broad flat color blocks give way to painted lacquer,
+aged gilt, bronze cages, sculpted cloth and real scenic layers. Match the original
+toy-theatre reference through tangible surfaces and amber light. Portrait keeps
+its large playing field; landscape has a modest oblique view. The renderer loads
+toy artwork after procedural asset merging, keeping constructor assets reusable.
+The new image-generation provenance is in `PAINTED-TOYS.md`.

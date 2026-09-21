@@ -10,7 +10,7 @@ export function handmade(root) {
     if (!o.isMesh || !o.material.isMeshStandardMaterial || o.material.userData.handmade === false || seen.has(o.material)) return;
     const m = o.material; seen.add(m);
     const wood = woods.has(m.color.getHexString());
-    m.roughness = m.metalness > .3 ? .48 : .87;
+    m.roughness = m.metalness > .3 ? .34 : .66;
     m.onBeforeCompile = shader => {
       shader.vertexShader = 'varying vec3 vCraftPosition;\n' + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvCraftPosition = position;');
@@ -59,7 +59,7 @@ export function createPresentation(scene, topProto) {
   const glowMap = glowTexture();
   const brass = new THREE.MeshStandardMaterial({color:'#bd9355', metalness:.6, roughness:.46});
   const ink = new THREE.MeshStandardMaterial({color:'#151726', roughness:1});
-  const bulb = new THREE.MeshBasicMaterial({color:'#ffe2a0'});
+  const bulb = new THREE.MeshBasicMaterial({color:'#efb76a'});
   const lilac = new THREE.MeshBasicMaterial({color:'#c7b9f1', transparent:true, opacity:.85});
   const shellMat = new THREE.MeshStandardMaterial({color:'#a74455', roughness:.82, side:THREE.DoubleSide});
   const paperGeometry=new THREE.PlaneGeometry(.25,.32),paperMaterial=new THREE.MeshStandardMaterial({color:'#f5e9ce',roughness:1,side:THREE.DoubleSide});
@@ -95,7 +95,7 @@ export function createPresentation(scene, topProto) {
   }
   const merged=bakeStatic(decor); merged.traverse(o=>{if(o.isMesh)o.receiveShadow=true;}); scene.add(merged);
 
-  const glow=sprite('#ffc176',2.8,-1,.95,0), goalGlow=sprite('#ffbd70',3.7,8,1.5,3.6);
+  const glow=sprite('#ff9e38',2.1,-1,.95,0), goalGlow=sprite('#ffa53b',3.0,8,1.5,3.6);
   const beam=new THREE.Mesh(new THREE.CylinderGeometry(.08,2.4,6.8,40,1,true),new THREE.ShaderMaterial({
     transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
     uniforms:{warmth:{value:new THREE.Color('#eac681')}},
@@ -158,8 +158,8 @@ export function createPresentation(scene, topProto) {
   function update(game,clock,dt,camera) {
     const stopped=['paused','lost'].includes(game.phase),delta=stopped?0:dt;
     glow.position.set(game.lantern.x,.95,game.lantern.z);beam.position.set(game.lantern.x,3.5,game.lantern.z);
-    glow.material.opacity=.65+Math.sin(clock*7)*.035;goalGlow.material.opacity=.65+Math.sin(clock*3)*.07;
-    glows.forEach((s,i)=>s.material.opacity=.58+Math.sin(clock*2+i)*.045);
+    glow.material.opacity=.45+Math.sin(clock*7)*.035;goalGlow.material.opacity=.5+Math.sin(clock*3)*.07;
+    glows.forEach((s,i)=>s.material.opacity=.34+Math.sin(clock*2+i)*.045);
     for(let i=0;i<dust.count;i++) {
       dummy.position.set(-9+(i*5.137)%18+Math.sin(clock*.17+i)*.28,.45+((i*.677+clock*.08)%4.6),-6+(i*3.137)%12);
       const near=Math.hypot(dummy.position.x-game.lantern.x,dummy.position.z-game.lantern.z)<3;

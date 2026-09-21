@@ -5,6 +5,8 @@ import {TheatreAudio} from './audio.js';
 import {ASSET,bakeStatic} from './assetlib.js';
 import {handmade,createPresentation} from './presentation.js';
 import {dressStage} from './stage-look.js';
+import {dressToys} from './toy-look.js';
+import {stageReflections} from './reflections.js';
 import {createGhostView,updateGhostView,disposeGhostView} from './ghost-view.js';
 import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,pointAt,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight,waveInfo,chooseNightGift,towerRange} from './sim.js';
 
@@ -16,10 +18,11 @@ let renderer;
 try {renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});}catch(error){$('fatal').hidden=false;$('fatal').textContent='The playhouse needs WebGL. Please open this game in a browser with hardware acceleration enabled.';throw error;}
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
 $('stage').appendChild(renderer.domElement);
+stageReflections(scene,renderer);
 const camera=new THREE.OrthographicCamera(-16,16,12,-12,.1,130);
-const ambient=new THREE.HemisphereLight('#a6ccd4','#20252a',.8);scene.add(ambient);
-const keyLight=new THREE.DirectionalLight('#ffcf98',2.0);keyLight.position.set(-9,11,7);keyLight.castShadow=true;keyLight.shadow.mapSize.set(2048,2048);keyLight.shadow.camera.left=-14;keyLight.shadow.camera.right=14;keyLight.shadow.camera.top=14;keyLight.shadow.camera.bottom=-14;keyLight.shadow.normalBias=.05;keyLight.shadow.bias=-.0001;scene.add(keyLight);
-const fill=new THREE.DirectionalLight('#83c4d3',1.15);fill.position.set(8,9,-7);scene.add(fill);
+const ambient=new THREE.HemisphereLight('#aabed8','#342226',.62);scene.add(ambient);
+const keyLight=new THREE.DirectionalLight('#ffd7a5',1.65);keyLight.position.set(-9,11,7);keyLight.castShadow=true;keyLight.shadow.mapSize.set(2048,2048);keyLight.shadow.camera.left=-14;keyLight.shadow.camera.right=14;keyLight.shadow.camera.top=14;keyLight.shadow.camera.bottom=-14;keyLight.shadow.normalBias=.05;keyLight.shadow.bias=-.0001;scene.add(keyLight);
+const fill=new THREE.DirectionalLight('#9ba9d7',.85);fill.position.set(8,9,-7);scene.add(fill);
 const gold=new THREE.MeshStandardMaterial({color:'#d7b477',metalness:.6,roughness:.35}),teal=new THREE.MeshStandardMaterial({color:'#467d76',roughness:.65}),ink=new THREE.MeshStandardMaterial({color:'#29353a',roughness:1});
 function mesh(geo,mat,x,y,z,parent=scene){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);parent.add(m);return m;}
 const environment=new THREE.Group();
@@ -31,18 +34,18 @@ function runner(width,y,material){
     const a=PATH[Math.max(0,i-1)],b=PATH[Math.min(PATH.length-1,i+1)];
     const dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);
     for(const side of [-1,1])positions.push(x+side*dz/len*width,y,z-side*dx/len*width);
-    if(i){const n=i*2;indices.push(n-2,n-1,n,n-1,n+1,n);}
+    if(i){const n=i*2;indices.push(n-2,n,n-1,n-1,n,n+1);}
   });
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();
   const ribbon=mesh(geo,material,0,0,0,environment);ribbon.receiveShadow=true;
 }
-runner(.65,.025,new THREE.MeshStandardMaterial({color:'#bc9256',roughness:.72,side:THREE.DoubleSide}));
-runner(.59,.033,new THREE.MeshStandardMaterial({color:'#773447',roughness:.94,side:THREE.DoubleSide}));
-runner(.48,.037,new THREE.MeshStandardMaterial({color:'#873b4d',roughness:1,side:THREE.DoubleSide}));
+runner(.65,.025,new THREE.MeshStandardMaterial({color:'#48262d',roughness:.88,side:THREE.DoubleSide}));
+runner(.59,.033,new THREE.MeshStandardMaterial({color:'#541e32',roughness:.94,side:THREE.DoubleSide}));
+runner(.48,.037,new THREE.MeshStandardMaterial({color:'#69293b',roughness:1,side:THREE.DoubleSide}));
 for(let d=.3;d<PATH_LENGTH;d+=.62){
   const p=pointAt(d);
   for(const side of [-1,1]){
-    const stitch=mesh(new THREE.BoxGeometry(.035,.009,.09),gold,p.x+side*.545*Math.cos(p.angle),.048,p.z-side*.545*Math.sin(p.angle),environment);stitch.rotation.y=p.angle;
+    const stitch=mesh(new THREE.BoxGeometry(.045,.009,.13),gold,p.x+side*.545*Math.cos(p.angle),.048,p.z-side*.545*Math.sin(p.angle),environment);stitch.rotation.y=p.angle;
   }
 }
 const socketRings=[];
@@ -57,17 +60,17 @@ SOCKETS.forEach(([x,z],i)=>{
 });
 const stageFloor=bakeStatic(environment);stageFloor.traverse(o=>{if(o.isMesh)o.receiveShadow=true;});handmade(stageFloor);scene.add(stageFloor);
 const rangeRing=mesh(new THREE.RingGeometry(2.59,2.65,64),new THREE.MeshBasicMaterial({color:'#83c4b1',transparent:true,opacity:.35,side:THREE.DoubleSide}),0,.07,0);rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;
-const lightSpot=new THREE.SpotLight('#ffca79',180,18,Math.atan(LIGHT_RADIUS/7),.6,1.1);lightSpot.position.set(-1,7,0);lightSpot.target.position.set(-1,0,0);scene.add(lightSpot,lightSpot.target);
-const lanternGlow=new THREE.PointLight('#ffb862',6,5,2);scene.add(lanternGlow);
+const lightSpot=new THREE.SpotLight('#ffc079',92,18,Math.atan(LIGHT_RADIUS/7),.6,1.1);lightSpot.position.set(-1,7,0);lightSpot.target.position.set(-1,0,0);scene.add(lightSpot,lightSpot.target);
+const lanternGlow=new THREE.PointLight('#ffad4a',8,6,2);scene.add(lanternGlow);
 const lightDisc=mesh(new THREE.CircleGeometry(LIGHT_RADIUS,64),new THREE.MeshBasicMaterial({color:'#ecc981',transparent:true,opacity:.07,depthWrite:false}),-1,.083,0);lightDisc.rotation.x=-Math.PI/2;
-const lightRim=mesh(new THREE.RingGeometry(LIGHT_RADIUS-.035,LIGHT_RADIUS,64),new THREE.MeshBasicMaterial({color:'#e4bf76',transparent:true,opacity:.46,depthWrite:false}),-1,.09,0);lightRim.rotation.x=-Math.PI/2;
+const lightRim=mesh(new THREE.RingGeometry(LIGHT_RADIUS-.035,LIGHT_RADIUS,64),new THREE.MeshBasicMaterial({color:'#e4bf76',transparent:true,opacity:.23,depthWrite:false}),-1,.09,0);lightRim.rotation.x=-Math.PI/2;
 const goalLight=new THREE.PointLight('#ffc66e',15,8,2);goalLight.position.set(8,1.7,3.6);scene.add(goalLight);
 const particleGeometry=new THREE.SphereGeometry(.07,5,4),particleMaterial=new THREE.MeshBasicMaterial({color:'#f6d791'});
 const pulseGeometry=new THREE.RingGeometry(.94,1,48);
 const healthGeometry=new THREE.PlaneGeometry(.72,.07),healthBack=new THREE.MeshBasicMaterial({color:'#17232a'}),healthFill=new THREE.MeshBasicMaterial({color:'#e6b581'});
 let ghostProto,dollProto,topProto,musicProto,lantern,goalLantern,presentation,stageLook;
 let dawnProgress=0;
-const nightColor=new THREE.Color('#0b1921'),dawnColor=new THREE.Color('#544753'),dawnKey=new THREE.Color('#ffe1b0'),nightKey=new THREE.Color('#ffcf98');
+const nightColor=new THREE.Color('#0b1921'),dawnColor=new THREE.Color('#544753'),dawnKey=new THREE.Color('#ffe1b0'),nightKey=new THREE.Color('#ffd7a5');
 let fps=60,lastUI='',lastTime=performance.now();
 const raycaster=new THREE.Raycaster(),floor=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
 const proj=new THREE.Vector3();
@@ -82,7 +85,7 @@ function resize(){
   // Frame the playable area at every window size; scenery may extend past the edges.
   stageLook?.layout(!landscape);
   keyLight.position.x=landscape?-9:9;
-  camera.position.set(landscape?3:32,landscape?25:44,landscape?34:0);
+  camera.position.set(landscape?(sideDock?3:7):32,landscape?(sideDock?25:24):44,landscape?34:0);
   camera.lookAt(0,0,0);camera.updateMatrixWorld();
   const bounds=new THREE.Box3();
   for(const x of [-9.1,9.1])for(const y of [0,2.8])for(const z of [-5.2,5.2]){
@@ -310,9 +313,9 @@ function animate(now){
   const dawnTarget=game.phase==='won'?1:Math.max(0,(game.wave-4)/3)*.48;
   if(game.phase!=='paused')dawnProgress+=(dawnTarget-dawnProgress)*Math.min(1,dt*.35);
   const dawn=dawnProgress;
-  scene.background.lerpColors(nightColor,dawnColor,dawn);scene.fog.color.copy(scene.background);ambient.intensity=.8+dawn*.85;keyLight.color.copy(nightKey).lerp(dawnKey,dawn);keyLight.intensity=2+dawn*1.4;
-  lightSpot.intensity=180+Math.sin(clock*7)*6;lanternGlow.intensity=6+Math.sin(clock*11)*.35;
-  presentation?.update(game,clock,dt,camera);nightView.update(game,clock);
+  scene.background.lerpColors(nightColor,dawnColor,dawn);scene.fog.color.copy(scene.background);ambient.intensity=.62+dawn*.85;keyLight.color.copy(nightKey).lerp(dawnKey,dawn);keyLight.intensity=1.65+dawn*1.4;
+  lightSpot.intensity=92+Math.sin(clock*7)*6;lanternGlow.intensity=8+Math.sin(clock*11)*.35;
+  presentation?.update(game,clock,dt,camera);stageLook?.update(clock,game.wave,game.phase==='paused'?priorPhase:game.phase);nightView.update(game,clock);
   updateUI();renderer.render(scene,camera);
   window.__GAME__={frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch,range:towerRange(game,t)})),lightRadius:LIGHT_RADIUS,nightGifts:{...game.nightGifts},giftOffer:game.giftOffer,giftHistory:game.giftHistory,encoreBursts:game.encoreBursts,ghostlightsCreated:game.ghostlightsCreated,ghostlights:game.ghostlights.map(p=>({x:p.x,z:p.z,radius:p.radius,life:p.life}))};
   if(frame%15===0){$('stage').dataset.telemetry=JSON.stringify(window.__GAME__);}
@@ -321,7 +324,7 @@ const projectileModels=[];
 try {
   const loaded=await Promise.all(['stage','doll','top','music','lantern','ghost'].map(name=>ASSET(`./assets/${name}.js`)));
   for(let i=0;i<loaded.length;i++)if(!loaded[i].children.length)throw new Error(`Asset failed to load: ${['stage','doll','top','music','lantern','ghost'][i]}`);
-  stageLook=await dressStage(loaded[0],scene,renderer);
+  [stageLook]=await Promise.all([dressStage(loaded[0],scene,renderer),dressToys(loaded[1],loaded[3],loaded[2],renderer)]);
   resize();
   loaded.forEach(handmade);ghostProto=loaded[5];
   const stage=loaded[0];stage.position.y=-.7;scene.add(stage);[dollProto,topProto,musicProto]=loaded.slice(1,4);lantern=loaded[4];scene.add(lantern);goalLantern=lantern.clone(true);goalLantern.scale.setScalar(1.4);goalLantern.position.set(8,.12,3.6);scene.add(goalLantern);
