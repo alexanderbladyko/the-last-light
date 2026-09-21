@@ -187,3 +187,43 @@ desktop browser viewport checks, not physical iPhone performance measurements.
 
 The two new image textures ship at 1024 × 512. Prompts, original paths, integration
 details and shipped file paths are recorded in `PAINTED-TOYS.md`.
+
+
+## Rotatable theatre experiment — September 21
+
+Added a bounded view experiment: ±24° yaw, fixed tilt, requested zoom from 80%
+to 108%, and Reset view. The fit also clamps against padded route and socket
+bounds so zoom cannot crop the playing area. Rotation eases over a short interval;
+reduced-motion preference makes it immediate. The default phone framing remains.
+The View panel exposes turn, zoom and reset buttons. Right mouse drag turns,
+wheel zooms, and two fingers use horizontal midpoint movement plus pinch distance.
+A single finger or left mouse drag continues to move the lantern. Keyboard and
+joystick motion still resolve through the current camera axes.
+
+Gesture ownership is explicit. A first touch does not immediately teleport the
+lantern. A second board touch stops its pending travel and takes control of the
+view, including touches that begin on a toy button. Returning to one finger cannot
+resume lantern dragging until all fingers lift. Camera gestures suppress stray
+toy clicks. Pointer cancellation, focus loss, pause, gifts and restart clear input.
+The view resets on restart. Escape closes the View panel before opening pause.
+
+The existing stage gained a 1.3 m wooden box, feet and layered brass edge strips;
+curtain wings have closed sides for the exposed angles. No decorative assets or
+image files were added. A thicker rear panel initially hid the backdrop painting;
+its rearward placement was corrected during the visual check.
+
+All 54 tests pass (48 previous checks plus six camera/gesture tests). New tests
+cover angle and zoom limits, reset/easing, touch tap/drag, two-finger turn/pinch,
+remaining-finger isolation, toy-start gestures, third fingers, cancellation and
+separate right/left mouse actions. Six asset contracts pass with 15,016 unique
+triangles. Browser checks cover 744 × 922, 390 × 844 and 844 × 390: both angle
+limits, maximum zoom, Reset view, rotated socket selection and lantern dragging.
+Camera-button actions left the lantern at [-1,0]. No browser errors or warnings
+were observed in the final source preview. A typical angled starter view reports
+79 draws / 37,054 rendered triangles.
+
+The automation surface has no native multi-touch gesture operation. Pinch and
+finger handoff were verified in the input tests; physical iPhone gesture feel
+still requires a hardware check. Rotating the long board in portrait necessarily
+reduces its fitted scale. This remains an experiment for the user's assessment,
+not a claim that rotation improves every play situation.

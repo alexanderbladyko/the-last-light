@@ -188,3 +188,15 @@ body:has(#ghost-cue:not([hidden])) #toast{top:216px}
 .socket:hover,.socket.selected,.socket:focus-visible{background:#ead1a51c;box-shadow:0 0 0 1px #e3bf7899;opacity:1}
 
 .socket.occupied:hover,.socket.occupied.selected{background:transparent;box-shadow:none}
+
+
+/* A small optional view panel leaves the existing lantern gesture intact. */
+#socket-labels,.socket{touch-action:none}
+#view-controls{position:absolute;left:max(12px,env(safe-area-inset-left));top:max(70px,calc(env(safe-area-inset-top) + 62px));z-index:5}
+#view-controls button{min-height:44px;color:var(--cream);border:1px solid #d7b47755;border-radius:4px;background:#162127ed;font-size:13px;touch-action:manipulation}
+#camera-toggle{min-width:52px;padding:0 10px}
+#camera-toggle[aria-expanded="true"]{border-color:var(--gold)}
+#camera-panel{width:224px;padding:10px;margin-top:7px;background:#162127f5;border:1px solid #d7b47766;border-radius:4px;box-shadow:0 8px 26px #0006}
+.camera-buttons{display:flex;gap:7px}.camera-buttons button{width:44px;font-size:23px!important}
+#camera-reset{width:100%;margin-top:8px}#camera-panel p{font-size:12px;line-height:1.45;color:var(--muted);margin:9px 0 0}
+@media(max-width:600px) and (orientation:portrait){.ghost-cue{left:auto;right:12px;max-width:calc(100% - 84px);transform:none}}

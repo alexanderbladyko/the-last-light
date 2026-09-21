@@ -7,11 +7,13 @@ import {handmade,createPresentation} from './presentation.js';
 import {dressStage} from './stage-look.js';
 import {dressToys} from './toy-look.js';
 import {stageReflections} from './reflections.js';
+import {createTheatreView,createBoardGesture,MAX_TURN,MIN_ZOOM,MAX_ZOOM} from './theatre-view.js';
 import {createGhostView,updateGhostView,disposeGhostView} from './ghost-view.js';
 import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,pointAt,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight,waveInfo,chooseNightGift,towerRange} from './sim.js';
 
 const $=id=>document.getElementById(id);
 let game=createGame(),priorPhase='build',selected=null,dragging=false,stickInput={x:0,z:0},accumulator=0,clock=0,frame=0,toastTimeout,playSpeed=1;
+const theatreView=createTheatreView(),boardGesture=createBoardGesture(),reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const keys=new Set(),enemyModels=new Map(),enemyBars=new Map(),towerModels=new Map(),effects=[];
 const scene=new THREE.Scene();const nightView=createNightView(scene);scene.background=new THREE.Color('#0b1921');scene.fog=new THREE.FogExp2('#0b1921',.006);
 let renderer;
@@ -26,7 +28,7 @@ const fill=new THREE.DirectionalLight('#9ba9d7',.85);fill.position.set(8,9,-7);s
 const gold=new THREE.MeshStandardMaterial({color:'#d7b477',metalness:.6,roughness:.35}),teal=new THREE.MeshStandardMaterial({color:'#467d76',roughness:.65}),ink=new THREE.MeshStandardMaterial({color:'#29353a',roughness:1});
 function mesh(geo,mat,x,y,z,parent=scene){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);parent.add(m);return m;}
 const environment=new THREE.Group();
-const backdrop=mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#0b1b24',roughness:1}),0,-.83,0,environment);backdrop.rotation.x=-Math.PI/2;backdrop.receiveShadow=true;backdrop.material.userData.handmade=false;
+const backdrop=mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#0b1b24',roughness:1}),0,-1.43,0,environment);backdrop.rotation.x=-Math.PI/2;backdrop.receiveShadow=true;backdrop.material.userData.handmade=false;
 // One continuous velvet runner, sampled from the same route the toys follow.
 function runner(width,y,material){
   const positions=[],indices=[];
@@ -56,7 +58,7 @@ SOCKETS.forEach(([x,z],i)=>{
   for(const side of [-1,1])mesh(new THREE.BoxGeometry(.065,.012,.19),gold,x+side*.31,.105,z,environment);
   mesh(new THREE.BoxGeometry(.07,.012,.24),gold,x,.105,z,environment);
   const halo=mesh(new THREE.RingGeometry(.55,.585,48),new THREE.MeshBasicMaterial({color:'#e7c58c',transparent:true,opacity:0,side:THREE.DoubleSide}),x,.11,z);halo.rotation.x=-Math.PI/2;socketRings.push(halo);
-  const button=document.createElement('button');button.className='socket';button.textContent=String(i+1);button.dataset.slot=i;button.setAttribute('aria-label',`Socket ${i+1}`);button.onclick=()=>selectSocket(i);$('socket-labels').appendChild(button);
+  const button=document.createElement('button');button.className='socket';button.textContent=String(i+1);button.dataset.slot=i;button.setAttribute('aria-label',`Socket ${i+1}`);button.onclick=()=>{if(!boardGesture.blocksClick(performance.now()))selectSocket(i);};$('socket-labels').appendChild(button);
 });
 const stageFloor=bakeStatic(environment);stageFloor.traverse(o=>{if(o.isMesh)o.receiveShadow=true;});handmade(stageFloor);scene.add(stageFloor);
 const rangeRing=mesh(new THREE.RingGeometry(2.59,2.65,64),new THREE.MeshBasicMaterial({color:'#83c4b1',transparent:true,opacity:.35,side:THREE.DoubleSide}),0,.07,0);rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;
@@ -75,10 +77,10 @@ let fps=60,lastUI='',lastTime=performance.now();
 const raycaster=new THREE.Raycaster(),floor=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
 const proj=new THREE.Vector3();
 
-let stageWidth=innerWidth,stageHeight=innerHeight;
+let stageWidth=0,stageHeight=0;
 function resize(){
   const w=$('app').clientWidth,h=$('app').clientHeight,aspect=w/h;
-  stageWidth=w;stageHeight=h;renderer.setSize(w,h);
+  if(w!==stageWidth||h!==stageHeight){stageWidth=w;stageHeight=h;renderer.setSize(w,h);}
   const landscape=w>=h,bench=$('workbench').getBoundingClientRect();
   const sideDock=matchMedia('(max-width:1100px) and (max-height:500px) and (orientation:landscape)').matches;
   $('app').style.setProperty('--bench-height',`${bench.height}px`);
@@ -86,6 +88,8 @@ function resize(){
   stageLook?.layout(!landscape);
   keyLight.position.x=landscape?-9:9;
   camera.position.set(landscape?(sideDock?3:7):32,landscape?(sideDock?25:24):44,landscape?34:0);
+  const radius=Math.hypot(camera.position.x,camera.position.z),yaw=Math.atan2(camera.position.x,camera.position.z)+theatreView.yaw;
+  camera.position.x=Math.sin(yaw)*radius;camera.position.z=Math.cos(yaw)*radius;
   camera.lookAt(0,0,0);camera.updateMatrixWorld();
   const bounds=new THREE.Box3();
   for(const x of [-9.1,9.1])for(const y of [0,2.8])for(const z of [-5.2,5.2]){
@@ -94,11 +98,20 @@ function resize(){
   const hud=document.querySelector('.hud').getBoundingClientRect();
   const left=16,top=hud.bottom+12,right=sideDock?(bench.width?bench.left-16:w-220):w-16;
   const bottom=sideDock?h-16:(bench.height?bench.top-16:h-116);
-  const scale=Math.min((right-left)/(bounds.max.x-bounds.min.x),Math.max(100,bottom-top)/(bounds.max.y-bounds.min.y));
+  const fit=box=>Math.min((right-left)/(box.max.x-box.min.x),Math.max(100,bottom-top)/(box.max.y-box.min.y));
+  // Zoom may use the framing margin, but never cut off a route or build point.
+  const critical=new THREE.Box3();
+  for(const [x,z]of [...PATH,...SOCKETS])for(const dx of [-.9,.9])for(const dz of [-.9,.9])for(const y of [0,2.9]){
+    critical.expandByPoint(new THREE.Vector3(x+dx,y,z+dz).applyMatrix4(camera.matrixWorldInverse));
+  }
+  const scale=Math.min(fit(bounds)*theatreView.zoom,fit(critical));
+  // Keep the same center while zooming, clamped so the critical rectangle fits.
+  const centreX=Math.max(critical.max.x-(right-left)/scale/2,Math.min(critical.min.x+(right-left)/scale/2,(bounds.min.x+bounds.max.x)/2));
+  const centreY=Math.max(critical.max.y-(bottom-top)/scale/2,Math.min(critical.min.y+(bottom-top)/scale/2,(bounds.min.y+bounds.max.y)/2));
   const viewWidth=w/scale,viewHeight=h/scale;
-  camera.left=(bounds.min.x+bounds.max.x)/2-(left+right)/2/scale;
+  camera.left=centreX-(left+right)/2/scale;
   camera.right=camera.left+viewWidth;
-  camera.top=(bounds.min.y+bounds.max.y)/2+(top+bottom)/2/scale;
+  camera.top=centreY+(top+bottom)/2/scale;
   camera.bottom=camera.top-viewHeight;
   camera.updateProjectionMatrix();camera.updateMatrixWorld();
 }
@@ -131,7 +144,7 @@ const rankMark=rank=>['','I','II','III'][rank];
 function closeNightOffer(){ $('night-offer').hidden=true;$('next-wave').focus(); }
 function openNightOffer(){
   if(game.phase!=='build'||!game.giftOffer)return;
-  deselect();keys.clear();dragging=false;stickInput={x:0,z:0};$('stick-knob').style.transform='';
+  boardGesture.cancel();deselect();keys.clear();dragging=false;stickInput={x:0,z:0};$('stick-knob').style.transform='';
   $('gift-kicker').textContent=`HOUR ${game.giftOffer} SURVIVED · GIFT ${game.giftHistory.length+1} OF 3`;
   $('gift-choices').replaceChildren();
   for(const id of GIFT_IDS){
@@ -221,11 +234,12 @@ function updateUI(force=false){
 }
 function start(){startGame(game);audio.setScene(game.phase,game.wave);void audio.unlock();$('intro').hidden=true;$('play-ui').hidden=false;$('socket-labels').hidden=false;syncTowers();updateUI(true);sound(392,.3);setTimeout(()=>sound(587,.35),160);notify('Two toys are ready. Add a defense, then begin midnight.');}
 function restart(){
+  theatreView.reset();boardGesture.cancel();setViewPanel(false);
   presentation?.reset();nightView.reset();$('night-offer').hidden=true;dawnProgress=0;
   for(const o of enemyModels.values()){disposeGhostView(o);scene.remove(o);}enemyModels.clear();for(const o of enemyBars.values())scene.remove(o);enemyBars.clear();for(const o of towerModels.values())scene.remove(o);towerModels.clear();for(const p of effects){scene.remove(p.mesh);p.mesh.material.dispose();}effects.length=0;
   game=createGame();startGame(game);audio.restart();selected=null;keys.clear();stickInput={x:0,z:0};accumulator=0;scene.background.copy(nightColor);ambient.intensity=.88;$('ending').hidden=true;$('pause-screen').hidden=true;$('selection').hidden=true;rangeRing.visible=false;syncTowers();updateUI(true);notify('A new night. Another chance.');
 }
-function togglePause(){$('night-offer').hidden=true;if(game.phase==='paused'){game.phase=priorPhase;$('pause-screen').hidden=true;lastTime=performance.now();}else if(['wave','build'].includes(game.phase)){priorPhase=game.phase;game.phase='paused';keys.clear();stickInput={x:0,z:0};$('pause-screen').hidden=false;$('resume').focus();}dragging=false;$('stick-knob').style.transform='';audio.setScene(game.phase,game.wave);updateUI(true);}
+function togglePause(){boardGesture.cancel();$('night-offer').hidden=true;if(game.phase==='paused'){game.phase=priorPhase;$('pause-screen').hidden=true;lastTime=performance.now();}else if(['wave','build'].includes(game.phase)){priorPhase=game.phase;game.phase='paused';keys.clear();stickInput={x:0,z:0};$('pause-screen').hidden=false;$('resume').focus();}dragging=false;$('stick-knob').style.transform='';audio.setScene(game.phase,game.wave);updateUI(true);}
 $('startb').onclick=start;$('next-wave').onclick=()=>{if(game.giftOffer){openNightOffer();return;}if(beginWave(game)){deselect();sound(196,.65,'sine',.05);notify(game.wave===1?'Keep the glow on your defenses. Watch the dolls in its light.':game.wave===2?'Paper ghosts! Shine the lantern on them near your tops.':`Hour ${game.wave}. ${waveInfo(game.wave).ghosts} paper ghosts are coming.`);updateUI(true);}};
 $('close-selection').onclick=deselect;$('pause').onclick=togglePause;$('resume').onclick=togglePause;$('restart').onclick=restart;$('restart-pause').onclick=restart;
 $('speed').onclick=()=>{playSpeed=playSpeed===1?2:1;$('speed').textContent=playSpeed+'×';$('speed').setAttribute('aria-label',playSpeed===1?'Play at double speed':'Play at normal speed');};
@@ -236,15 +250,42 @@ $('sound').onclick=()=>{
 };
 for(const key of ['music','effects'])$(key+'-level').oninput=e=>audio.setPreference(key,Number(e.target.value)/100);
 function pointerWorld(event){const rect=renderer.domElement.getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1),camera);if(raycaster.ray.intersectPlane(floor,hit))moveLantern(game,hit.x,hit.z);}
-renderer.domElement.addEventListener('pointerdown',e=>{if(!['build','wave'].includes(game.phase))return;dragging=true;renderer.domElement.setPointerCapture(e.pointerId);pointerWorld(e);deselect();});
-renderer.domElement.addEventListener('pointermove',e=>{if(dragging)pointerWorld(e);});
-for(const name of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(name,()=>dragging=false);
+function canUseBoard(){return ['build','wave'].includes(game.phase)&&$('intro').hidden&&$('night-offer').hidden;}
+function applyBoardAction(action){
+  if(action.stopLantern){dragging=false;moveLantern(game,game.lantern.x,game.lantern.z);}
+  if(action.lantern){pointerWorld({clientX:action.lantern.x,clientY:action.lantern.y});deselect();}
+  if(action.turn)theatreView.turn(-action.turn/Math.max(320,stageWidth)*2.1);
+  if(action.zoom)theatreView.magnify(action.zoom);
+}
+const boardPoint=e=>({id:e.pointerId,x:e.clientX,y:e.clientY,time:performance.now(),type:e.pointerType,button:e.button,floor:e.target===renderer.domElement});
+$('app').addEventListener('pointerdown',e=>{
+  if(!canUseBoard()||!e.target.closest('#stage,#socket-labels')||(e.pointerType==='mouse'&&![0,2].includes(e.button)))return;
+  e.target.setPointerCapture(e.pointerId);applyBoardAction(boardGesture.down(boardPoint(e)));
+  if(e.button===2)e.preventDefault();
+},true);
+$('app').addEventListener('pointermove',e=>{if(canUseBoard())applyBoardAction(boardGesture.move(boardPoint(e)));},true);
+for(const name of ['pointerup','pointercancel','lostpointercapture'])$('app').addEventListener(name,e=>{
+  const action=boardGesture.up(boardPoint(e),name!=='pointerup');if(canUseBoard())applyBoardAction(action);
+},true);
+$('app').addEventListener('contextmenu',e=>{if(e.target.closest('#stage,#socket-labels'))e.preventDefault();});
+renderer.domElement.addEventListener('wheel',e=>{if(canUseBoard()){e.preventDefault();theatreView.magnify(Math.exp(-e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?stageHeight:1)*.001));}},{passive:false});
+function setViewPanel(open){$('camera-panel').hidden=!open;$('camera-toggle').setAttribute('aria-expanded',String(open));}
+$('camera-toggle').onclick=()=>{deselect();setViewPanel($('camera-panel').hidden);};
+$('camera-left').onclick=()=>theatreView.turn(-8*Math.PI/180);
+$('camera-right').onclick=()=>theatreView.turn(8*Math.PI/180);
+$('camera-in').onclick=()=>theatreView.magnify(1.08);
+$('camera-out').onclick=()=>theatreView.magnify(1/1.08);
+$('camera-reset').onclick=()=>theatreView.reset();
+function updateViewControls(){
+  $('camera-left').disabled=theatreView.targetYaw<=-MAX_TURN+.001;$('camera-right').disabled=theatreView.targetYaw>=MAX_TURN-.001;
+  $('camera-out').disabled=theatreView.targetZoom<=MIN_ZOOM+.001;$('camera-in').disabled=theatreView.targetZoom>=MAX_ZOOM-.001;
+}
 const stick=$('stick');let stickId=null;
 function updateStick(e){const b=stick.getBoundingClientRect(),dx=(e.clientX-b.left-b.width/2)/24,dy=(e.clientY-b.top-b.height/2)/24,length=Math.max(1,Math.hypot(dx,dy));stickInput={x:dx/length,z:dy/length};$('stick-knob').style.transform=`translate(${stickInput.x*20}px,${stickInput.z*20}px)`;}
 stick.onpointerdown=e=>{e.preventDefault();stickId=e.pointerId;stick.setPointerCapture(e.pointerId);updateStick(e);};stick.onpointermove=e=>{if(e.pointerId===stickId)updateStick(e);};
 for(const name of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(name,()=>{stickId=null;stickInput={x:0,z:0};$('stick-knob').style.transform='';});
-addEventListener('keydown',e=>{if(e.target.matches('input'))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.repeat)return;if(e.code==='KeyP'||e.code==='Escape'){if(selected!==null&&e.code==='Escape')deselect();else togglePause();}else if(e.code==='Space'&&game.phase==='build')$('next-wave').click();else keys.add(e.code);});
-addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();dragging=false;stickInput={x:0,z:0};});
+addEventListener('keydown',e=>{if(e.target.matches('input'))return;if(e.code==='Escape'&&!$('camera-panel').hidden){setViewPanel(false);$('camera-toggle').focus();return;}if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.repeat)return;if(e.code==='KeyP'||e.code==='Escape'){if(selected!==null&&e.code==='Escape')deselect();else togglePause();}else if(e.code==='Space'&&game.phase==='build')$('next-wave').click();else keys.add(e.code);});
+addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{boardGesture.cancel();keys.clear();dragging=false;stickInput={x:0,z:0};});
 document.addEventListener('visibilitychange',()=>{audio.setHidden(document.hidden);if(document.hidden&&['wave','build'].includes(game.phase))togglePause();});
 const right=new THREE.Vector3(),forward=new THREE.Vector3();
 function moveInput(){if(!['build','wave'].includes(game.phase)||!$('night-offer').hidden)return;let x=stickInput.x+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),z=stickInput.z+(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0);if(!x&&!z)return;right.setFromMatrixColumn(camera.matrixWorld,0);right.y=0;right.normalize();forward.set(camera.position.x,0,camera.position.z).normalize();moveLantern(game,game.lantern.x+(right.x*x+forward.x*z)*2,game.lantern.z+(right.z*x+forward.z*z)*2);}
@@ -267,6 +308,7 @@ function processEvents(){
 }
 function animate(now){
   requestAnimationFrame(animate);const raw=(now-lastTime)/1000;lastTime=now;const dt=Math.min(raw,.1);fps+=(1/Math.max(.001,raw)-fps)*.07;frame++;
+  if(theatreView.tick(dt,reducedMotion.matches))resize();updateViewControls();
   if(game.phase!=='paused'&&game.phase!=='lost')clock+=dt;
   moveInput();accumulator+=Math.min(raw,.2)*(game.phase==='wave'?playSpeed:1);while(accumulator>=1/60){stepGame(game,1/60);accumulator-=1/60;}audio.setScene(game.phase,game.wave);processEvents();
   if(lantern){
@@ -317,7 +359,7 @@ function animate(now){
   lightSpot.intensity=92+Math.sin(clock*7)*6;lanternGlow.intensity=8+Math.sin(clock*11)*.35;
   presentation?.update(game,clock,dt,camera);stageLook?.update(clock,game.wave,game.phase==='paused'?priorPhase:game.phase);nightView.update(game,clock);
   updateUI();renderer.render(scene,camera);
-  window.__GAME__={frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch,range:towerRange(game,t)})),lightRadius:LIGHT_RADIUS,nightGifts:{...game.nightGifts},giftOffer:game.giftOffer,giftHistory:game.giftHistory,encoreBursts:game.encoreBursts,ghostlightsCreated:game.ghostlightsCreated,ghostlights:game.ghostlights.map(p=>({x:p.x,z:p.z,radius:p.radius,life:p.life}))};
+  window.__GAME__={view:{turn:Math.round(theatreView.yaw*180/Math.PI),zoom:Number(theatreView.zoom.toFixed(3))},frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch,range:towerRange(game,t)})),lightRadius:LIGHT_RADIUS,nightGifts:{...game.nightGifts},giftOffer:game.giftOffer,giftHistory:game.giftHistory,encoreBursts:game.encoreBursts,ghostlightsCreated:game.ghostlightsCreated,ghostlights:game.ghostlights.map(p=>({x:p.x,z:p.z,radius:p.radius,life:p.life}))};
   if(frame%15===0){$('stage').dataset.telemetry=JSON.stringify(window.__GAME__);}
 }
 const projectileModels=[];
@@ -327,7 +369,7 @@ try {
   [stageLook]=await Promise.all([dressStage(loaded[0],scene,renderer),dressToys(loaded[1],loaded[3],loaded[2],renderer)]);
   resize();
   loaded.forEach(handmade);ghostProto=loaded[5];
-  const stage=loaded[0];stage.position.y=-.7;scene.add(stage);[dollProto,topProto,musicProto]=loaded.slice(1,4);lantern=loaded[4];scene.add(lantern);goalLantern=lantern.clone(true);goalLantern.scale.setScalar(1.4);goalLantern.position.set(8,.12,3.6);scene.add(goalLantern);
+  const stage=loaded[0];stage.position.y=-1.3;scene.add(stage);[dollProto,topProto,musicProto]=loaded.slice(1,4);lantern=loaded[4];scene.add(lantern);goalLantern=lantern.clone(true);goalLantern.scale.setScalar(1.4);goalLantern.position.set(8,.12,3.6);scene.add(goalLantern);
   presentation=createPresentation(scene,topProto);
   syncTowers();$('startb').disabled=false;$('startb').textContent='Raise the curtain →';$('startb').focus();window.__READY__=true;window.__START__=start;requestAnimationFrame(animate);
 }catch(error){$('fatal').hidden=false;$('fatal').textContent=`The playhouse could not open: ${error.message}. Reload to try again.`;console.error(error);}

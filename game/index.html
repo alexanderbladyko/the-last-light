@@ -20,6 +20,17 @@
     <div id="socket-labels" hidden></div>
     <div id="toast" role="status" aria-live="polite"></div>
     <div id="play-ui" hidden>
+      <div id="view-controls">
+        <button id="camera-toggle" aria-label="Adjust theatre view" aria-expanded="false" aria-controls="camera-panel">View</button>
+        <section id="camera-panel" aria-label="Theatre view" hidden>
+          <div class="camera-buttons">
+            <button id="camera-left" aria-label="Turn theatre left">↶</button><button id="camera-right" aria-label="Turn theatre right">↷</button>
+            <button id="camera-out" aria-label="Zoom out">−</button><button id="camera-in" aria-label="Zoom in">+</button>
+          </div>
+          <button id="camera-reset">Reset view</button>
+          <p>Two fingers: turn &amp; pinch.<br>Mouse: right-drag &amp; scroll.</p>
+        </section>
+      </div>
       <aside id="ghost-cue" class="ghost-cue" hidden aria-label="Paper ghost visibility"><strong id="ghost-count"></strong><span id="ghost-rule"></span></aside>
       <aside class="light-note"><span class="light-symbol">☼</span><div><strong>A little light. A little danger.</strong><span>Your light wakes <em>every</em> toy. Friends fire faster.<br>Enemies move faster, too. Ghosts need light to be hit.</span></div></aside>
       <div id="stick" aria-label="Drag to move the lantern" role="application"><span id="stick-knob"></span><span class="stick-caption">LANTERN</span></div>

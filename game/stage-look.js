@@ -30,8 +30,14 @@ export async function dressStage(stage, scene, renderer){
   const paper=new THREE.MeshStandardMaterial({color:'#233947',roughness:1,side:THREE.DoubleSide});
   const paint=new THREE.MeshStandardMaterial({map:painting,emissiveMap:painting,emissive:'#ffffff',emissiveIntensity:.12,roughness:1});
   function add(geo,mat,x,y,z){const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);set.add(o);return o;}
-  add(new THREE.BoxGeometry(19.7,4.9,.16),dark,0,2.5,-.12);
+  add(new THREE.BoxGeometry(19.7,4.9,.35),dark,0,2.5,-.25);
   add(new THREE.PlaneGeometry(19.3,4.85),paint,0,2.52,-.02);
+  // Solid wings close the scenery at the small angles exposed by rotation.
+  for(const side of [-1,1]){
+    add(new THREE.BoxGeometry(.18,4.9,1.8),dark,side*9.83,2.5,.66);
+    add(new THREE.BoxGeometry(.22,.07,1.87),brass,side*9.83,4.98,.66);
+    add(new THREE.BoxGeometry(.23,.09,1.87),brass,side*9.83,.08,.66);
+  }
   // Continuous velvet folds pinch at the tie instead of reading as red pipes.
   function curtain(side){
     const positions=[],indices=[],cols=36,rows=24;

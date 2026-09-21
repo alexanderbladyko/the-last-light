@@ -63,3 +63,12 @@ toy-theatre reference through tangible surfaces and amber light. Portrait keeps
 its large playing field; landscape has a modest oblique view. The renderer loads
 toy artwork after procedural asset merging, keeping constructor assets reusable.
 The new image-generation provenance is in `PAINTED-TOYS.md`.
+
+
+## Rotatable theatre experiment
+
+Give the miniature physical depth through its box base and closed curtain wings.
+View changes are optional and limited; the default remains the large playable
+framing. The View button exposes the experiment without replacing lantern control.
+Camera rotation changes perspective on the existing set, rather than rearranging
+its scenery. Keep this as one bounded experiment before adding more decorative assets.
