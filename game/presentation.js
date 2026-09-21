@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {bakeStatic} from './assetlib.js';
 import {SOCKETS, onLight} from './sim.js';
 
-// Surface detail is generated in the shader. No image or mesh files are needed.
+// Shader wear supplements the geometry; stage artwork has its own materials.
 export function handmade(root) {
   const seen = new Set();
   const woods = new Set(['846044', '76583f', '836344', '99764f', 'a88358']);
@@ -103,7 +103,7 @@ export function createPresentation(scene, topProto) {
     pool.rotation.x=-Math.PI/2;pool.scale.set(2.4,3.7,1);
   }
   // Small irregular scratches and nails make the floor feel assembled by hand.
-  const scratch=new THREE.MeshStandardMaterial({color:'#b08b60',roughness:1});
+  const scratch=new THREE.MeshStandardMaterial({color:'#6b8177',roughness:1});
   for(let i=0;i<95;i++) {
     const x=-9.4+((i*7.139)%18.8), z=-5.8+((i*3.713)%12.2);
     add(new THREE.BoxGeometry(.014,.006,.13+(i%5)*.11),scratch,x,.012,z);
@@ -117,7 +117,7 @@ export function createPresentation(scene, topProto) {
     transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
     uniforms:{warmth:{value:new THREE.Color('#eac681')}},
     vertexShader:'varying vec2 beamUV; void main(){beamUV=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-    fragmentShader:'varying vec2 beamUV;uniform vec3 warmth;void main(){float fade=sin(beamUV.y*3.14159);gl_FragColor=vec4(warmth,.018*fade*fade);}'
+    fragmentShader:'varying vec2 beamUV;uniform vec3 warmth;void main(){float fade=sin(beamUV.y*3.14159);gl_FragColor=vec4(warmth,.027*fade*fade);}'
   }));beam.position.set(-1,3.5,0);scene.add(beam);
 
   // One instanced draw for drifting dust; positions are generated, not imported.

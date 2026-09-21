@@ -20,8 +20,7 @@ for(const side of [-1,1]){for(let i=0;i<7;i++){const x=side*(8.05+i*.21);const f
     for(const x of [-9.65,9.65]){box(.35,5.65,.6,wood,x,3.35,-6.9);box(.58,.25,.85,brass,x,6.08,-6.9);}
     box(19.9,.19,.8,brass,0,6.17,-6.9);box(19.9,.14,.65,brass,0,5.52,-6.8);
     for(let i=0;i<17;i++){const x=-8.8+i*1.1;box(.8,.55,.08,plum,x,.29,7.53);star(.12,brass,x,.3,7.59);}
-    for(let i=0;i<13;i++){const x=-7.4+i*1.25,y=3.2+(i%3)*.75;star(.12+(i%2)*.05,brass,x,y,-6.85);}
-    const moonShape=new THREE.Shape();moonShape.absarc(0,0,.8,.4,Math.PI*1.9,false);moonShape.quadraticCurveTo(-.15,.05,.74,.31);add(new THREE.ExtrudeGeometry(moonShape,{depth:.06,bevelEnabled:false}),cream,0,4.6,-6.8);
+    // Moon and village are painted on the rear scenic panel by stage-look.js.
     for(const x of [-8,-4,0,4,8]){cyl(.12,.16,.12,brass,x,.78,6.92);const bulb=ball(.11,cream,x,.91,6.92);}
   
 return g;

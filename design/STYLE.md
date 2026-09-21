@@ -2,7 +2,7 @@
 
 Original haunted toy theatre, based on the attached generated reference board: crooked carved wood, painted tin, warm brass, plum nesting dolls, teal defenses, honey light and a midnight backdrop. No human anatomy, skeletal rigs, external meshes or simulated rigid bodies.
 
-Palette: ink #141920, midnight #243343, plum #78394e, coral #c67461, teal #4d9187, brass #d7b477, cream #f2e3bc, wood #846044. All scenery and toys are geometry constructed in code. References are documentation only; no generated raster art ships in the game.
+Palette: ink #141920, midnight #243343, plum #78394e, coral #c67461, teal #4d9187, brass #d7b477, cream #f2e3bc, wood #846044. Scenery and toys use geometry constructed in code. The painted-theatre pass adds two original local raster textures to the floor and rear wall; see ARTWORK.md for provenance and prompts.
 
 Scale: theatre floor 20 × 15 m; doll 1.25 m; top 1.3 m; music box 1 m; rolling lantern 1.2 m. Bodies face +Z, grounded at y=0. One tilted fixed camera, soft warm key and cooler fill, readable floor, curtain frame. Stage sockets carry UI numbers, not texture glyphs.
 
