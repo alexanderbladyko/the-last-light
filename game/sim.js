@@ -7,18 +7,20 @@ export const SOCKETS=[[-6.3,0.6],[-4.3,2.05],[-6.2,-2.3],[3.4,-0.8],[2,-4.2],[5.
 export const COST={top:36,music:42};
 export const UPGRADE_COST=42;
 export const LIGHT_RADIUS=2.55;
+export const DRUM={radius:3,interval:4.6,windup:1.1,duration:1.4,boost:1.3};
 // The preview and spawner share one roster, including the order of arrivals.
 const ghostSlots=[[],[1,5],[1,4,8],[1,4,7,10],[1,3,6,9,12],[1,3,6,9,12,14]];
-const waveTitles=['A rustle in the wings.','Something in the paper.','The music turns strange.','No one is sleeping.','Just a little longer.','The last dark hour.'];
+const drummerSlots=[[],[],[2],[3],[2,8],[2,8]];
+const waveTitles=['A rustle in the wings.','Something in the paper.','A drum behind the curtain.','No one is sleeping.','Just a little longer.','The last dark hour.'];
 const waveHints=['Build your toys. Broken dolls release smaller, faster dolls.',
   'New: paper ghosts. Move your light onto them so tops can hit them.',
-  'Mixed company. Light reveals ghosts, but speeds the dolls up too.',
-  'A lullaby can hold a ghost while you bring the light around.',
-  'Keep ghosts lit near your tops. Let music buy you more time.',
+  'New: Tin Drummer. Its beat speeds nearby toys. A Lullaby interrupts the wind-up.',
+  'Lullabies interrupt drums and hold ghosts while you bring the light around.',
+  'Two drummers. Keep ghosts lit and use music to break the march.',
   'Six ghosts in the final hour. Follow them through your defenses.'];
 const waves=ghostSlots.map((slots,index)=>{
-  const roster=Array.from({length:6+index*2},(_,i)=>({kind:slots.includes(i)?'ghost':'doll',tier:index===0&&i%3===0?1:2}));
-  return {number:index+1,title:waveTitles[index],hint:waveHints[index],roster,dolls:roster.length-slots.length,ghosts:slots.length};
+  const roster=Array.from({length:6+index*2},(_,i)=>({kind:slots.includes(i)?'ghost':drummerSlots[index].includes(i)?'drummer':'doll',tier:index===0&&i%3===0?1:2}));
+  return {number:index+1,title:waveTitles[index],hint:waveHints[index],roster,dolls:roster.length-slots.length-drummerSlots[index].length,ghosts:slots.length,drummers:drummerSlots[index].length};
 });
 export function waveInfo(wave){return waves[wave-1];}
 export function canDamageEnemy(g,e){return !e.dead&&(e.kind!=='ghost'||onLight(g,e));}
@@ -45,7 +47,7 @@ export function chooseNightGift(g,id){
   const rank=++g.nightGifts[id];g.giftHistory.push({wave:g.wave,id,rank});g.giftOffer=0;
   g.events.push({type:'gift',id,rank});return true;
 }
-export function createGame(){return {phase:'title',wave:0,lives:12,coins:76,kills:0,ghostKills:0,time:0,waveTime:0,spawned:0,spawnClock:0,nextId:1,enemies:[],towers:[{id:1,slot:1,type:'top',branch:null,charge:0},{id:2,slot:3,type:'music',branch:null,charge:0}],shots:[],events:[],nightGifts:{encore:0,overwound:0,ghostlight:0},giftOffer:0,giftHistory:[],ghostlights:[],nextLightId:1,encoreBursts:0,ghostlightsCreated:0,lantern:{x:-1,z:0,tx:-1,tz:0,speed:0},lastReward:0,selected:null};}
+export function createGame(){return {phase:'title',wave:0,lives:12,coins:76,kills:0,ghostKills:0,drummerKills:0,drumBeats:0,time:0,waveTime:0,spawned:0,spawnClock:0,nextId:1,enemies:[],towers:[{id:1,slot:1,type:'top',branch:null,charge:0},{id:2,slot:3,type:'music',branch:null,charge:0}],shots:[],events:[],nightGifts:{encore:0,overwound:0,ghostlight:0},giftOffer:0,giftHistory:[],ghostlights:[],nextLightId:1,encoreBursts:0,ghostlightsCreated:0,lantern:{x:-1,z:0,tx:-1,tz:0,speed:0},lastReward:0,selected:null};}
 export function startGame(g){if(g.phase==='title')g.phase='build';}
 export function beginWave(g){if(g.phase!=='build'||g.giftOffer||!waveInfo(g.wave+1))return false;g.phase='wave';g.wave++;g.waveTime=0;g.spawned=0;g.spawnClock=0;g.events.push({type:'wave',wave:g.wave});return true;}
 export function buildTower(g,slot,type){
@@ -59,9 +61,9 @@ export function upgradeTower(g,slot,branch){
 export function sellTower(g,slot){const t=g.towers.find(t=>t.slot===slot);if(!t||!['build','wave'].includes(g.phase))return false;g.coins+=Math.floor((COST[t.type]+(t.branch?UPGRADE_COST:0))*.65);g.towers=g.towers.filter(a=>a!==t);return true;}
 export function moveLantern(g,x,z){g.lantern.tx=Math.max(-8.8,Math.min(8.8,x));g.lantern.tz=Math.max(-5.7,Math.min(5.7,z));}
 export function spawnEnemy(g,tier=2,distance=0,kind='doll'){
-  const p=pointAt(distance),ghost=kind==='ghost';
-  const hp=ghost?([0,18,24,32,44,60,76][g.wave]??76):[6,12,22][tier]*([1,1,1.5,2.3,3.5,5,7][g.wave]??7);
-  const e={id:++g.nextId,kind,tier:ghost?0:tier,hp,maxHp:hp,distance,...p,age:0,slow:0,sleep:0,exposure:0,wakeGrace:0,hit:0};
+  const p=pointAt(distance),ghost=kind==='ghost',drummer=kind==='drummer';
+  const hp=ghost?([0,18,24,32,44,60,76][g.wave]??76):(drummer?40:[6,12,22][tier])*([1,1,1.5,2.3,3.5,5,7][g.wave]??7);
+  const e={id:++g.nextId,kind,tier:ghost?0:drummer?2:tier,hp,maxHp:hp,distance,...p,age:0,slow:0,sleep:0,exposure:0,wakeGrace:0,hit:0,march:0,...(drummer?{drumClock:2.3}: {})};
   g.enemies.push(e);return e;
 }
 export function damageEnemy(g,e,amount,allowEncore=true){
@@ -72,10 +74,10 @@ export function damageEnemy(g,e,amount,allowEncore=true){
   e.hp-=amount;e.hit=.14;
   if(e.sleep>0){e.sleep=0;e.exposure=0;e.wakeGrace=1.2;}
   if(e.hp<=0){
-    e.dead=true;g.kills++;if(e.kind==='ghost')g.ghostKills++;
-    g.coins+=e.kind==='ghost'?7:e.tier===0?4:1;
+    e.dead=true;g.kills++;if(e.kind==='ghost')g.ghostKills++;if(e.kind==='drummer')g.drummerKills++;
+    g.coins+=e.kind==='ghost'?7:e.kind==='drummer'?6:e.tier===0?4:1;
     g.events.push({type:'pop',x:e.x,z:e.z,tier:e.tier,kind:e.kind});
-    if(e.kind!=='ghost'&&e.tier>0)spawnEnemy(g,e.tier-1,e.distance);
+    if(e.kind==='doll'&&e.tier>0)spawnEnemy(g,e.tier-1,e.distance);
     const light=e.kind==='ghost'?giftInfo('ghostlight',g.nightGifts.ghostlight):null;
     if(light){
       g.ghostlights.push({id:g.nextLightId++,x:e.x,z:e.z,radius:light.radius,life:light.duration,duration:light.duration});
@@ -99,7 +101,7 @@ export function stepGame(g,dt){
   g.waveTime+=dt;g.spawnClock-=dt;
   const roster=waveInfo(g.wave).roster,count=roster.length;
   if(g.spawned<count&&g.spawnClock<=0){const entry=roster[g.spawned];spawnEnemy(g,entry.tier,0,entry.kind);g.spawned++;g.spawnClock=Math.max(.8,2.4-g.wave*.16);}
-  for(const e of g.enemies){e.slow=0;e.hearing=false;e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.sleep=Math.max(0,e.sleep-dt);e.wakeGrace=Math.max(0,e.wakeGrace-dt);}
+  for(const e of g.enemies){e.slow=0;e.march=Math.max(0,e.march-dt);e.hearing=false;e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.sleep=Math.max(0,e.sleep-dt);e.wakeGrace=Math.max(0,e.wakeGrace-dt);}
   // Music applies before movement and attacks. Sleeping enemies wake on damage.
   for(const t of g.towers.filter(t=>t.type==='music')){
     const [x,z]=SOCKETS[t.slot],lit=onLight(g,{x,z}),range=towerRange(g,t);
@@ -114,11 +116,22 @@ export function stepGame(g,dt){
       }
     }
   }
+  // A sleeping drummer drops its wind-up. Beats refresh one brief boost, never stack it.
+  for(const drummer of g.enemies){
+    if(drummer.dead||drummer.kind!=='drummer')continue;
+    if(drummer.sleep>0){drummer.drumClock=DRUM.interval;continue;}
+    drummer.drumClock-=dt;
+    if(drummer.drumClock<=0){
+      drummer.drumClock=DRUM.interval;g.drumBeats++;
+      for(const e of g.enemies)if(!e.dead&&e.kind!=='drummer'&&Math.hypot(e.x-drummer.x,e.z-drummer.z)<=DRUM.radius)e.march=DRUM.duration;
+      g.events.push({type:'drum',x:drummer.x,z:drummer.z,r:DRUM.radius});
+    }
+  }
   for(const e of g.enemies){
     if(e.dead)continue;
     if(!e.hearing)e.exposure=0;
-    const speed=(e.kind==='ghost'?1.05:[1.48,1.04,.78][e.tier])*(1+g.wave*.055)*(onLight(g,e)?1.65:1)*(1-e.slow);
-    if(e.sleep<=0)e.distance+=speed*dt;
+    const speed=(e.kind==='ghost'?1.05:e.kind==='drummer'?.72:[1.48,1.04,.78][e.tier])*(1+g.wave*.055)*(onLight(g,e)?1.65:1)*(e.march>0?DRUM.boost:1)*(1-e.slow);
+    if(e.sleep<=0&&!(e.kind==='drummer'&&e.drumClock<=DRUM.windup))e.distance+=speed*dt;
     Object.assign(e,pointAt(e.distance));
     if(e.distance>=PATH_LENGTH){e.dead=true;g.lives-=e.kind==='ghost'?2:e.tier+1;g.events.push({type:'leak',x:e.x,z:e.z,kind:e.kind});}
   }

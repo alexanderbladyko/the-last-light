@@ -46,7 +46,7 @@ test('wave previews match the actual roster and introduce ghosts after the openi
     assert.equal(g.spawned,plan.roster.length);
     assert.deepEqual(g.enemies.map(e=>e.kind),plan.roster.map(e=>e.kind));
     assert.equal(g.enemies.filter(e=>e.kind==='ghost').length,plan.ghosts);
-    assert.equal(plan.dolls+plan.ghosts,plan.roster.length);
+    assert.equal(plan.dolls+plan.ghosts+plan.drummers,plan.roster.length);
   }
 });
 test('ghost damage follows the current lantern position and closes immediately in darkness',()=>{

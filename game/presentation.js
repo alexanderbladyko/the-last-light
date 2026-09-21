@@ -63,6 +63,7 @@ export function createPresentation(scene, topProto) {
   const lilac = new THREE.MeshBasicMaterial({color:'#c7b9f1', transparent:true, opacity:.85});
   const shellMat = new THREE.MeshStandardMaterial({color:'#a74455', roughness:.82, side:THREE.DoubleSide});
   const paperGeometry=new THREE.PlaneGeometry(.25,.32),paperMaterial=new THREE.MeshStandardMaterial({color:'#f5e9ce',roughness:1,side:THREE.DoubleSide});
+  const tinGeometry=new THREE.BoxGeometry(.25,.18,.07);
   const shellGeometry = new THREE.SphereGeometry(.6, 12, 8, 0, Math.PI);
   const noteGeometry = new THREE.SphereGeometry(.075, 6, 4);
   const poolGeometry = new THREE.PlaneGeometry(1, 1);
@@ -137,6 +138,9 @@ export function createPresentation(scene, topProto) {
     return a;
   }
   function pop(e) {
+    if(e.kind==='drummer'){
+      for(let i=0;i<7;i++){const piece=new THREE.Mesh(tinGeometry,i%2?brass:ink);piece.position.set(e.x,1.2,e.z);scene.add(piece);const angle=i*Math.PI*2/7;fx.push({mesh:piece,life:.9,max:.9,vx:Math.cos(angle)*1.8,vz:Math.sin(angle)*1.8,vy:2.5,spin:4+i,shell:true});}return;
+    }
     if(e.kind==='ghost'){
       for(let i=0;i<5;i++){
         const piece=new THREE.Mesh(paperGeometry,paperMaterial);piece.position.set(e.x,1.15,e.z);piece.rotation.set(i*.7,i,0);scene.add(piece);
@@ -175,7 +179,7 @@ export function createPresentation(scene, topProto) {
       if(t.type==='music'&&game.phase==='wave'&&a.lastNote!==beat){a.lastNote=beat;note(a.root.position.x,a.root.position.z,t.branch==='lullaby'?'#b9a4ef':t.branch==='invitation'?'#e4bc88':'#8dcabd');}
     }
     for(const id of sleepers.keys())if(!game.enemies.some(e=>e.id===id&&e.sleep>0)){scene.remove(sleepers.get(id));sleepers.delete(id);}
-    for(const e of game.enemies)if(e.sleep>0){let s=sleepers.get(e.id);if(!s){s=new THREE.Mesh(moonGeometry,lilac);scene.add(s);sleepers.set(e.id,s);}s.position.set(e.x,(e.kind==='ghost'?2.65:[.69,.96,1.25][e.tier]*1.72+.35)+Math.sin(clock*2)*.09,e.z);s.quaternion.copy(camera.quaternion);}
+    for(const e of game.enemies)if(e.sleep>0){let s=sleepers.get(e.id);if(!s){s=new THREE.Mesh(moonGeometry,lilac);scene.add(s);sleepers.set(e.id,s);}s.position.set(e.x,(e.kind==='ghost'?2.65:e.kind==='drummer'?3.15:[.69,.96,1.25][e.tier]*1.72+.35)+Math.sin(clock*2)*.09,e.z);s.quaternion.copy(camera.quaternion);}
     const links=new Set();
     for(const t of game.towers.filter(t=>t.branch==='invitation')) {
       const [x,z]=SOCKETS[t.slot];

@@ -263,3 +263,11 @@ far bends through the visible workbench. Cleared hour one with 12 light and 59
 brass, opened the gift offer and returned to planning. The full route and all six
 mounts stay reachable. No browser warnings or errors were observed. These are
 browser viewport checks; physical iPhone performance remains a user playtest.
+
+
+## Tin Drummer — September 21
+
+Added one new enemy/model, introduced from hour three. Details, measured stats,
+playtests and the final animation-verification limitation are in `TIN-DRUMMER.md`.
+All 63 tests and seven asset contracts pass. Existing full-night strategies remain
+viable; the first two waves, placement count, route and economy are preserved.

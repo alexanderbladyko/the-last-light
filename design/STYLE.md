@@ -81,3 +81,11 @@ It crosses the stage as a continuous sweep, with space beside it for six toys.
 The entrance, first bend, diagonal lane, support area, far bend and final approach
 provide distinct placement purposes. Route length stays near the original travel
 budget; no extra sockets, economy changes or decorative assets are part of this pass.
+
+
+### Tin Drummer
+
+The third enemy has a tall red hat, striped cream drum and brass winding key.
+Rigid shoulders and moving sticks fit the theatre's handmade toy aesthetic.
+It plants its feet and raises its sticks before a brief gold pulse; a Lullaby
+interrupts the beat. See `TIN-DRUMMER.md` for the encounter and validation notes.
