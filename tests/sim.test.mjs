@@ -15,8 +15,8 @@ test('an unprotected theatre loses and rejects further waves',()=>{const g=activ
 test('clearing the final hour produces dawn and stops combat',()=>{const g=active();g.wave=6;g.spawned=16;stepGame(g,1/60);assert.equal(g.phase,'won');const time=g.time;advance(g,2);assert.equal(g.time,time);});
 test('wide orbit reaches a toy outside the basic top range',()=>{for(const branch of [null,'orbit']){const g=active();g.towers=[{slot:1,type:'top',branch,charge:0}];const e=spawnEnemy(g,2,5);const hp=e.hp;stepGame(g,1/60);assert.equal(e.hp<hp,branch==='orbit');}});
 test('a bowling projectile can damage multiple enemies',()=>{const g=active();g.towers=[{slot:1,type:'top',branch:'bowling',charge:0}];const a=spawnEnemy(g,2,12),b=spawnEnemy(g,2,12.35);a.hp=b.hp=200;advance(g,.5);assert.ok(a.hp<200&&b.hp<200);});
-// The curved runner reaches the gramophone's listening area at distance 21.8.
-test('lullaby actually puts an undamaged toy to sleep',()=>{const g=active();g.towers=[{slot:3,type:'music',branch:'lullaby',charge:0}];const e=spawnEnemy(g,2,21.8);advance(g,1.8);assert.ok(e.sleep>0);});
+// Distance 19.5 leaves enough listening time inside the diagonal support position.
+test('lullaby actually puts an undamaged toy to sleep',()=>{const g=active();g.towers=[{slot:3,type:'music',branch:'lullaby',charge:0}];const e=spawnEnemy(g,2,19.5);advance(g,1.8);assert.ok(e.sleep>0);});
 test('leaving lullaby range resets accumulated listening time',()=>{const g=active();g.towers=[{slot:3,type:'music',branch:'lullaby',charge:0}];const e=spawnEnemy(g,2,0);e.exposure=1;stepGame(g,1/60);assert.equal(e.exposure,0);});
 test('the starter layout loses; investing and following ghosts can reach dawn',()=>{
   for(const mode of ['starter','stationary','ambush','moving']){
@@ -69,7 +69,7 @@ test('tops ignore hidden ghosts and keep attacking dolls in the same crowd',()=>
 });
 test('lullaby can hold a ghost in darkness and only a real hit wakes it',()=>{
   const g=active();g.towers=[{slot:3,type:'music',branch:'lullaby',charge:0}];Object.assign(g.lantern,{x:-8,z:5,tx:-8,tz:5});
-  const e=spawnEnemy(g,0,21.8,'ghost');advance(g,1.8);assert.ok(e.sleep>0);const sleep=e.sleep;
+  const e=spawnEnemy(g,0,19.5,'ghost');advance(g,1.8);assert.ok(e.sleep>0);const sleep=e.sleep;
   damageEnemy(g,e,1);assert.equal(e.sleep,sleep);
   Object.assign(g.lantern,{x:e.x,z:e.z,tx:e.x,tz:e.z});damageEnemy(g,e,1);assert.equal(e.sleep,0);assert.ok(e.wakeGrace>0);
 });

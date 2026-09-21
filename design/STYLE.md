@@ -72,3 +72,12 @@ View changes are optional and limited; the default remains the large playable
 framing. The View button exposes the experiment without replacing lantern control.
 Camera rotation changes perspective on the existing set, rather than rearranging
 its scenery. Keep this as one bounded experiment before adding more decorative assets.
+
+
+### Diagonal route composition
+
+The velvet runner now makes two broad bends joined by a straight diagonal.
+It crosses the stage as a continuous sweep, with space beside it for six toys.
+The entrance, first bend, diagonal lane, support area, far bend and final approach
+provide distinct placement purposes. Route length stays near the original travel
+budget; no extra sockets, economy changes or decorative assets are part of this pass.

@@ -65,8 +65,9 @@ test('Encore respects hidden ghosts and requires damage to wake its source',()=>
 
 test('a real Lullaby and orbit pair produces Encore during simulation',()=>{
   const g=active(4);g.nightGifts.encore=1;shine(g,{x:8,z:5});
-  g.towers=[{slot:1,type:'music',branch:'lullaby',charge:0},{slot:0,type:'top',branch:'orbit',charge:0}];
-  const toy=spawnEnemy(g,2,7.5);toy.hp=toy.maxHp=1000;
+  // On the opening bend, music at the inside mount overlaps the next top's orbit.
+  g.towers=[{slot:0,type:'music',branch:'lullaby',charge:0},{slot:1,type:'top',branch:'orbit',charge:0}];
+  const toy=spawnEnemy(g,2,6.5);toy.hp=toy.maxHp=1000;
   advance(g,4);assert.ok(g.encoreBursts>0);assert.ok(toy.hp<1000);
 });
 
@@ -87,7 +88,7 @@ test('Overwound increases real attack cadence but reduces current and future top
 test('Overwound really loses edge targets and shortens bowling flight',()=>{
   for(const rank of [0,3]){
     const g=active();g.nightGifts.overwound=rank;g.towers=[{slot:1,type:'top',branch:null,charge:0}];
-    const enemy=spawnEnemy(g,2,12),hp=enemy.hp;stepGame(g,1/60);
+    const enemy=spawnEnemy(g,2,14),hp=enemy.hp;stepGame(g,1/60);
     assert.equal(enemy.hp<hp,rank===0);
   }
   const g=active();g.nightGifts.overwound=3;g.towers=[{slot:1,type:'top',branch:'bowling',charge:0}];
@@ -157,14 +158,18 @@ test('economy-valid specialized and mixed gift builds can complete the full nigh
     while(!['won','lost'].includes(g.phase)&&ticks<36000){
       if(g.phase==='build'){
         if(g.giftOffer)assert.equal(chooseNightGift(g,picks[g.giftHistory.length]),true);
-        for(const slot of [0,1,4])upgradeTower(g,slot,slot===1?'bowling':'orbit');
+        // Encore needs orbit coverage around sleepers; the other builds use the diagonal bowling lane.
+        for(const slot of [0,1,4])upgradeTower(g,slot,slot===1&&!picks.includes('encore')?'bowling':'orbit');
         upgradeTower(g,3,picks.includes('encore')?'lullaby':'invitation');
         for(const slot of [5,2])buildTower(g,slot,'top');for(const slot of [5,2])upgradeTower(g,slot,'orbit');
         assert.equal(beginWave(g),true);
       }
       if(ticks%90===0){
         const target=g.enemies.filter(e=>e.kind==='ghost'&&g.towers.some(t=>t.type==='top'&&Math.hypot(e.x-SOCKETS[t.slot][0],e.z-SOCKETS[t.slot][1])<towerRange(g,t))).sort((a,b)=>b.distance-a.distance)[0];
-        const p=target?pointAt(target.distance+.8):{x:-1,z:0};moveLantern(g,p.x,p.z);
+        // Between ghosts, light a defense attacking the leading doll, using the same 1.5-second decisions.
+        const lead=g.enemies.filter(e=>e.kind!=='ghost').sort((a,b)=>b.distance-a.distance)[0];
+        const top=lead&&g.towers.find(t=>t.type==='top'&&Math.hypot(lead.x-SOCKETS[t.slot][0],lead.z-SOCKETS[t.slot][1])<towerRange(g,t));
+        const p=target?pointAt(target.distance+.8):top?{x:SOCKETS[top.slot][0],z:SOCKETS[top.slot][1]}:{x:-1,z:0};moveLantern(g,p.x,p.z);
       }
       stepGame(g,1/60);g.events.length=0;ticks++;
     }

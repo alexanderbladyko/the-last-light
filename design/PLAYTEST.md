@@ -227,3 +227,39 @@ finger handoff were verified in the input tests; physical iPhone gesture feel
 still requires a hardware check. Rotating the long board in portrait necessarily
 reduces its fitted scale. This remains an experiment for the user's assessment,
 not a claim that rotation improves every play situation.
+
+
+## Diagonal sweep and six useful placements — September 21
+
+Replaced the rounded rectangular zigzag with two broad cubic bends and a straight
+diagonal joining them. The shared rendered/simulated route remains at the same
+entrance and goal. Length is 32.71 units versus 32.21 previously (about 1.6% longer),
+so the unslowed, unlit opening large doll takes 39.75 seconds versus 39.14.
+
+Repositioned the six mounts for the entrance, opening bend, diagonal, support,
+far bend and final approach. Each basic top now covers approximately 3.9–4.8
+units of road, instead of the previous 1.0–6.6 spread. All mounts clear the runner
+by at least 1.35 units from its center. A phone check moved the starter top a
+little farther from its neighbor to separate the default touch targets.
+
+All 55 tests pass. The baseline starter, stationary-lantern and fixed-ambush
+strategies still lose; investing and following ghosts with the original baseline
+build still reaches dawn. Four economy-valid gift policies also win, defeating
+all 20 ghosts: Encore III (5 light), Overwound III (12), Ghostlight III (12),
+and a mixed Ghostlight/Encore/Overwound build (7). These are scripted policies,
+not a claim that every build wins. Encore policies now use Wide orbit with Lullaby;
+the others retain the diagonal Bowling top. Their lantern prioritizes ghosts and
+otherwise boosts a top attacking the leading doll, deciding every 1.5 seconds.
+
+Updated three location-dependent mechanic fixtures: the Lullaby listening window,
+an overlapping Lullaby/orbit pair on the opening bend, and the Overwound edge
+target. Assertions and mechanics are preserved. Added a route check for travel
+budget, floor bounds, mount clearance and useful basic-top coverage. Prices,
+enemy stats, wave rosters, gift effects and upgrade rules are unchanged.
+
+Browser checks: 390 × 844 portrait at the default and both rotation limits;
+844 × 390 landscape combat; 1280 × 720 desktop. Built tops at the opening and
+far bends through the visible workbench. Cleared hour one with 12 light and 59
+brass, opened the gift offer and returned to planning. The full route and all six
+mounts stay reachable. No browser warnings or errors were observed. These are
+browser viewport checks; physical iPhone performance remains a user playtest.

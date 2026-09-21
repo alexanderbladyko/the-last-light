@@ -2,7 +2,8 @@ import {GIFT_HOURS,giftInfo} from './night-gifts.js';
 // Pure simulation: renderer and input both consume this state, never drive rules themselves.
 import {PATH} from './route.js';
 export {PATH};
-export const SOCKETS=[[-6.9,-1],[-2.7,0.7],[-2.7,-3.5],[2.7,-0.4],[3,3.8],[7.3,0.4]];
+// Opening bend, diagonal lane, entrance, central support, far bend, final approach.
+export const SOCKETS=[[-6.3,0.6],[-4.3,2.05],[-6.2,-2.3],[3.4,-0.8],[2,-4.2],[5.9,-1]];
 export const COST={top:36,music:42};
 export const UPGRADE_COST=42;
 export const LIGHT_RADIUS=2.55;
