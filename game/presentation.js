@@ -114,7 +114,7 @@ export function createPresentation(scene, topProto) {
     add(noteGeometry,material,0,0,0,group).scale.set(1.3,.7,.7);
     add(new THREE.BoxGeometry(.025,.24,.025),material,.07,.1,0,group);
     add(new THREE.BoxGeometry(.14,.025,.025),material,.125,.21,0,group).rotation.z=-.25;
-    group.position.set(x,.9,z);scene.add(group);fx.push({mesh:group,life:1.6,max:1.6,note:true,material});
+    group.position.set(x,2.45,z);scene.add(group);fx.push({mesh:group,life:1.6,max:1.6,note:true,material});
   }
   function clearTower(id) {
     const a=accents.get(id);if(!a)return;scene.remove(a.root);a.root.traverse(o=>{if(o.isMesh&&!o.userData.shared){o.geometry.dispose();o.material.dispose();}});accents.delete(id);
@@ -130,10 +130,6 @@ export function createPresentation(scene, topProto) {
       for(let i=0;i<3;i++) {
         const chevron=new THREE.Group();for(const s of [-1,1]){const bar=add(new THREE.BoxGeometry(.035,.025,.25),brass.clone(),s*.08,.035,.7+i*.18,chevron);bar.rotation.y=-s*.55;}root.add(chevron);
       }
-    } else if(t.branch==='lullaby') {
-      const moon=add(moonGeometry.clone(),lilac.clone(),0,2.55,0,root);moon.scale.setScalar(1.6);a.moon=moon;
-    } else if(t.branch==='invitation') {
-      const halo=add(new THREE.TorusGeometry(.45,.02,5,32),new THREE.MeshBasicMaterial({color:'#dfb985',transparent:true,opacity:.7}),0,1.15,0,root);a.halo=halo;
     }
     return a;
   }
@@ -173,10 +169,8 @@ export function createPresentation(scene, topProto) {
     for(const t of game.towers) {
       const a=towerAccent(t),lit=onLight(game,{x:a.root.position.x,z:a.root.position.z});
       a.orbs.forEach((o,i)=>{const angle=clock*3.8+i*Math.PI;o.position.set(Math.sin(angle)*1.38,.12+Math.sin(clock*6+i)*.06,Math.cos(angle)*1.38);o.rotation.y=-clock*14;});
-      if(a.moon){a.moon.quaternion.copy(camera.quaternion);a.moon.position.y=2.55+Math.sin(clock*2)*.1;}
-      if(a.halo){a.halo.rotation.set(.5,clock*.7,0);a.halo.position.y=1.15+Math.sin(clock*2)*.07;}
       const beat=Math.floor(clock*(lit?2.1:1.15));
-      if(t.type==='music'&&game.phase==='wave'&&a.lastNote!==beat){a.lastNote=beat;note(a.root.position.x,a.root.position.z,t.branch==='lullaby'?'#b9a4ef':t.branch==='invitation'?'#e4bc88':'#8dcabd');}
+      if(t.type==='music'&&game.phase==='wave'&&a.lastNote!==beat){a.lastNote=beat;note(a.root.position.x,a.root.position.z,t.branch==='lullaby'?'#a5d7f0':t.branch==='invitation'?'#e4bc88':'#8dcabd');}
     }
     for(const id of sleepers.keys())if(!game.enemies.some(e=>e.id===id&&e.sleep>0)){scene.remove(sleepers.get(id));sleepers.delete(id);}
     for(const e of game.enemies)if(e.sleep>0){let s=sleepers.get(e.id);if(!s){s=new THREE.Mesh(moonGeometry,lilac);scene.add(s);sleepers.set(e.id,s);}s.position.set(e.x,(e.kind==='ghost'?2.65:e.kind==='drummer'?3.15:[.69,.96,1.25][e.tier]*1.72+.35)+Math.sin(clock*2)*.09,e.z);s.quaternion.copy(camera.quaternion);}

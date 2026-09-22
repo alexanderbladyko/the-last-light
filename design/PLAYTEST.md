@@ -271,3 +271,13 @@ Added one new enemy/model, introduced from hour three. Details, measured stats,
 playtests and the final animation-verification limitation are in `TIN-DRUMMER.md`.
 All 63 tests and seven asset contracts pass. Existing full-night strategies remain
 viable; the first two waves, placement count, route and economy are preserved.
+
+
+## Gramophone visual pass — September 22
+
+Base, Lullaby and Invitation now have distinct physical models built from the
+same asset. Verified normal purchase, upgrade, sale and rebuild controls;
+inspected the final models at 390 × 844 and 844 × 390. Live combat showed
+target-following horn motion. 63 existing tests pass; direct geometry/view
+checks cover pause and cleanup. No simulation changes. See GRAMOPHONE.md for
+measurements and limitations. Physical iPhone performance remains unmeasured.
