@@ -30,12 +30,12 @@ export function createGhostView(proto){
   root.userData.ghost={materials:[...materials.values()],reveal,halo};
   return root;
 }
-export function updateGhostView(root,e,lit,dt,camera){
+export function updateGhostView(root,e,lit,dt,audiencePosition){
   const view=root.userData.ghost;
   view.reveal.value+=(Number(lit)-view.reveal.value)*Math.min(1,dt*13);
   const amount=view.reveal.value;
   root.position.set(e.x,.48+Math.sin(e.age*3+e.id)*.12,e.z);
-  root.rotation.set(e.sleep>0?.12:Math.sin(e.age*2)*.035,Math.atan2(camera.position.x-e.x,camera.position.z-e.z),Math.sin(e.age*3)*.055+e.hit*.5);
+  root.rotation.set(e.sleep>0?.12:Math.sin(e.age*2)*.035,Math.atan2(audiencePosition.x-e.x,audiencePosition.z-e.z),Math.sin(e.age*3)*.055+e.hit*.5);
   const birth=Math.min(1,e.age*6);root.scale.setScalar(birth*1.1);
   for(const m of view.materials){
     const face=m.name==='ghost-face';

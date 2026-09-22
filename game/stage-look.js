@@ -121,6 +121,22 @@ export async function dressStage(stage, scene, renderer){
   for(let i=0;i<10;i++){const a=i*Math.PI/5+Math.PI/2,rr=i%2?.12:.28;if(i)crest.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);else crest.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);}
   crest.closePath();gate(new THREE.ExtrudeGeometry(crest,{depth:.06,bevelEnabled:false}),brass,0,2.5,.08);
   const gateSet=bakeStatic(entrance);gateSet.traverse(o=>{o.castShadow=true;o.receiveShadow=true;});scene.add(gateSet);
+  // The scenic wall becomes a cutaway from behind so an orbit never hides the toys.
+  const cutaways=[facade,gateSet].map(group=>{
+    const materials=new Map();
+    group.traverse(o=>{if(o.isMesh){if(!materials.has(o.material))materials.set(o.material,o.material.clone());o.material=materials.get(o.material);}});
+    return {group,materials:[...materials.values()]};
+  });
+  function setView(position){
+    for(const {group,materials}of cutaways){
+      const facing=(position.x*Math.sin(group.rotation.y)+position.z*Math.cos(group.rotation.y))/Math.hypot(position.x,position.z);
+      const t=Math.max(0,Math.min(1,(facing+.08)/.43)),opacity=.1+.9*t*t*(3-2*t),transparent=opacity<.999;
+      for(const m of materials){
+        if(m.transparent!==transparent){m.transparent=transparent;m.depthWrite=!transparent;m.needsUpdate=true;}
+        m.opacity=transparent?opacity:1;
+      }
+    }
+  }
   function layout(portrait){
     gateSet.rotation.y=portrait?Math.PI/2:0;
     gateSet.position.set(portrait?-8.25:-8,0,portrait?-4.1:-4.55);
@@ -134,5 +150,5 @@ export async function dressStage(stage, scene, renderer){
     const hour=phase==='won'?6:phase==='build'?wave:Math.max(0,wave-1);
     hourHand.rotation.z=-hour*Math.PI/6;
   }
-  return {layout,update};
+  return {layout,update,setView};
 }

@@ -299,3 +299,11 @@ Added three static backstage clusters: a slightly open lacquered toy chest, stac
 - Floor clearance checked against the sampled route and six socket centers: nearest prop surface is 1.07 m beyond the runner edge; nearest socket center is 3.04 m away. All geometry rests on or above the board.
 - Visual checks in the local browser: desktop 1280×720; phone layouts 390×844 and 844×390; portrait right-turn limit and landscape left-turn limit during the first wave. The chest, blocks, and spool leave the playable route and build spots visible. Decorative ribbon can crop at the portrait edge; camera framing remains unchanged.
 - Browser console has no warnings/errors. `npm test`: 63 passing. `npm run check`: all eight asset modules pass, standalone game 3.53 MB. Phone checks are browser viewport checks, not a physical iPhone performance run.
+
+## Full orbit and elevation — 2026-09-22
+
+View now has continuous 360-degree rotation and an 18–85-degree elevation range, accessible through sliders, arrow buttons, two-finger dragging, and right-mouse dragging. Pinch/wheel zoom remains unchanged. Reset restores the original angle for the current portrait or landscape layout. Crossing the rear seam follows the short arc.
+
+The scenic wall and entrance fade to a cutaway from behind. Gramophones and paper ghosts keep their orientation toward the stage audience as the viewer orbits, exposing their actual side/back geometry. Empty brass sockets take priority over overlapping transparent toy hit boxes, which became noticeable at low elevations.
+
+Validation: 65 passing tests, including seam crossing, repeated circles, elevation limits, reset after orientation changes, touch tilt/pinch arbitration, and mouse tilt. Browser checked at 1280×720, 390×844 and 844×390, including low rear/side views, overhead, slider/button operation, panel fit, and correct Socket 1 selection where the gramophone hit area previously intercepted it. Ghost poses checked for finite transforms in both audience layouts. Phone tests use browser viewport sizes, not a physical iPhone.

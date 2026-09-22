@@ -23,12 +23,23 @@
       <div id="view-controls">
         <button id="camera-toggle" aria-label="Adjust theatre view" aria-expanded="false" aria-controls="camera-panel">View</button>
         <section id="camera-panel" aria-label="Theatre view" hidden>
+          <label for="camera-rotation">Rotation <output id="camera-turn-value">0°</output></label>
           <div class="camera-buttons">
-            <button id="camera-left" aria-label="Turn theatre left">↶</button><button id="camera-right" aria-label="Turn theatre right">↷</button>
-            <button id="camera-out" aria-label="Zoom out">−</button><button id="camera-in" aria-label="Zoom in">+</button>
+            <button id="camera-left" aria-label="Turn theatre left">↶</button>
+            <input id="camera-rotation" aria-label="Theatre rotation" type="range" min="-180" max="180" value="0" step="1">
+            <button id="camera-right" aria-label="Turn theatre right">↷</button>
           </div>
-          <button id="camera-reset">Reset view</button>
-          <p>Two fingers: turn &amp; pinch.<br>Mouse: right-drag &amp; scroll.</p>
+          <label for="camera-elevation">Elevation <output id="camera-angle-value">35°</output></label>
+          <div class="camera-buttons">
+            <button id="camera-lower" aria-label="Lower viewing angle">↓</button>
+            <input id="camera-elevation" aria-label="Viewing elevation" type="range" min="18" max="85" value="35" step="1">
+            <button id="camera-raise" aria-label="Raise viewing angle">↑</button>
+          </div>
+          <div class="camera-buttons camera-bottom">
+            <button id="camera-out" aria-label="Zoom out">−</button><button id="camera-in" aria-label="Zoom in">+</button>
+            <button id="camera-reset">Reset view</button>
+          </div>
+          <p>Drag with two fingers or right mouse to turn &amp; tilt. Pinch or scroll to zoom.</p>
         </section>
       </div>
       <aside id="ghost-cue" class="ghost-cue" hidden aria-label="Paper ghost visibility"><strong id="ghost-count"></strong><span id="ghost-rule"></span></aside>

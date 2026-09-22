@@ -8,7 +8,7 @@ import {dressStage} from './stage-look.js';
 import generateStageProps from './assets/props.js';
 import {dressToys} from './toy-look.js';
 import {stageReflections} from './reflections.js';
-import {createTheatreView,createBoardGesture,MAX_TURN,MIN_ZOOM,MAX_ZOOM} from './theatre-view.js';
+import {createTheatreView,createBoardGesture,MIN_ELEVATION,MAX_ELEVATION,MIN_ZOOM,MAX_ZOOM} from './theatre-view.js';
 import {createDrummerView,updateDrummerView,disposeDrummerView} from './drummer-view.js';
 import {createTopView,updateTopView,triggerTopAttack,disposeTopView,createTopProjectile,updateTopProjectile} from './top-view.js';
 import {createGramophoneView,updateGramophoneView,disposeGramophoneView} from './gramophone-view.js';
@@ -26,6 +26,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enable
 $('stage').appendChild(renderer.domElement);
 stageReflections(scene,renderer);
 const camera=new THREE.OrthographicCamera(-16,16,12,-12,.1,130);
+const audiencePosition=new THREE.Vector3();
 const ambient=new THREE.HemisphereLight('#aabed8','#342226',.62);scene.add(ambient);
 const keyLight=new THREE.DirectionalLight('#ffd7a5',1.65);keyLight.position.set(-9,11,7);keyLight.castShadow=true;keyLight.shadow.mapSize.set(2048,2048);keyLight.shadow.camera.left=-14;keyLight.shadow.camera.right=14;keyLight.shadow.camera.top=14;keyLight.shadow.camera.bottom=-14;keyLight.shadow.normalBias=.05;keyLight.shadow.bias=-.0001;scene.add(keyLight);
 const fill=new THREE.DirectionalLight('#9ba9d7',.85);fill.position.set(8,9,-7);scene.add(fill);
@@ -94,9 +95,13 @@ function resize(){
   stageLook?.layout(!landscape);
   keyLight.position.x=landscape?-9:9;
   camera.position.set(landscape?(sideDock?3:7):32,landscape?(sideDock?25:24):44,landscape?34:0);
-  const radius=Math.hypot(camera.position.x,camera.position.z),yaw=Math.atan2(camera.position.x,camera.position.z)+theatreView.yaw;
-  camera.position.x=Math.sin(yaw)*radius;camera.position.z=Math.cos(yaw)*radius;
-  camera.lookAt(0,0,0);camera.updateMatrixWorld();
+  // Toys face the original audience, so orbiting reveals their sides and backs.
+  audiencePosition.copy(camera.position);
+  const baseRadius=Math.hypot(camera.position.x,camera.position.z),distance=camera.position.length(),yaw=Math.atan2(camera.position.x,camera.position.z)+theatreView.yaw;
+  theatreView.setDefaultElevation(Math.atan2(camera.position.y,baseRadius));
+  const radius=distance*Math.cos(theatreView.elevation);
+  camera.position.set(Math.sin(yaw)*radius,Math.sin(theatreView.elevation)*distance,Math.cos(yaw)*radius);
+  camera.lookAt(0,0,0);camera.updateMatrixWorld();stageLook?.setView(camera.position);
   const bounds=new THREE.Box3();
   for(const x of [-9.1,9.1])for(const y of [0,2.8])for(const z of [-5.2,5.2]){
     bounds.expandByPoint(new THREE.Vector3(x,y,z).applyMatrix4(camera.matrixWorldInverse));
@@ -261,6 +266,7 @@ function applyBoardAction(action){
   if(action.stopLantern){dragging=false;moveLantern(game,game.lantern.x,game.lantern.z);}
   if(action.lantern){pointerWorld({clientX:action.lantern.x,clientY:action.lantern.y});deselect();}
   if(action.turn)theatreView.turn(-action.turn/Math.max(320,stageWidth)*2.1);
+  if(action.tilt)theatreView.tilt(action.tilt/Math.max(320,stageHeight)*1.6);
   if(action.zoom)theatreView.magnify(action.zoom);
 }
 const boardPoint=e=>({id:e.pointerId,x:e.clientX,y:e.clientY,time:performance.now(),type:e.pointerType,button:e.button,floor:e.target===renderer.domElement});
@@ -277,13 +283,20 @@ $('app').addEventListener('contextmenu',e=>{if(e.target.closest('#stage,#socket-
 renderer.domElement.addEventListener('wheel',e=>{if(canUseBoard()){e.preventDefault();theatreView.magnify(Math.exp(-e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?stageHeight:1)*.001));}},{passive:false});
 function setViewPanel(open){$('camera-panel').hidden=!open;$('camera-toggle').setAttribute('aria-expanded',String(open));}
 $('camera-toggle').onclick=()=>{deselect();setViewPanel($('camera-panel').hidden);};
-$('camera-left').onclick=()=>theatreView.turn(-8*Math.PI/180);
-$('camera-right').onclick=()=>theatreView.turn(8*Math.PI/180);
+$('camera-left').onclick=()=>theatreView.turn(-15*Math.PI/180);
+$('camera-right').onclick=()=>theatreView.turn(15*Math.PI/180);
+$('camera-lower').onclick=()=>theatreView.tilt(-5*Math.PI/180);
+$('camera-raise').onclick=()=>theatreView.tilt(5*Math.PI/180);
+$('camera-rotation').oninput=e=>theatreView.rotateTo(Number(e.target.value)*Math.PI/180);
+$('camera-elevation').oninput=e=>theatreView.setElevation(Number(e.target.value)*Math.PI/180);
 $('camera-in').onclick=()=>theatreView.magnify(1.08);
 $('camera-out').onclick=()=>theatreView.magnify(1/1.08);
 $('camera-reset').onclick=()=>theatreView.reset();
 function updateViewControls(){
-  $('camera-left').disabled=theatreView.targetYaw<=-MAX_TURN+.001;$('camera-right').disabled=theatreView.targetYaw>=MAX_TURN-.001;
+  const turn=Math.round(theatreView.targetYaw*180/Math.PI),elevation=Math.round(theatreView.targetElevation*180/Math.PI);
+  $('camera-rotation').value=turn;$('camera-turn-value').textContent=turn+'°';
+  $('camera-elevation').value=elevation;$('camera-angle-value').textContent=elevation+'°';
+  $('camera-lower').disabled=theatreView.targetElevation<=MIN_ELEVATION+.001;$('camera-raise').disabled=theatreView.targetElevation>=MAX_ELEVATION-.001;
   $('camera-out').disabled=theatreView.targetZoom<=MIN_ZOOM+.001;$('camera-in').disabled=theatreView.targetZoom>=MAX_ZOOM-.001;
 }
 const stick=$('stick');let stickId=null;
@@ -328,7 +341,7 @@ function animate(now){
       let o=enemyModels.get(e.id);
       if(!o){o=e.kind==='ghost'?createGhostView(ghostProto):e.kind==='drummer'?createDrummerView(drummerProto):dollProto.clone(true);scene.add(o);enemyModels.set(e.id,o);const bar=new THREE.Group();mesh(healthGeometry,healthBack,0,0,0,bar);bar.userData.fill=mesh(healthGeometry,healthFill,0,0,.004,bar);scene.add(bar);enemyBars.set(e.id,bar);}
       if(e.kind==='ghost'){
-        updateGhostView(o,e,onLight(game,e),game.phase==='paused'?0:dt,camera);
+        updateGhostView(o,e,onLight(game,e),game.phase==='paused'?0:dt,audiencePosition);
         const bar=enemyBars.get(e.id);bar.position.set(e.x,2.48,e.z);bar.quaternion.copy(camera.quaternion);bar.userData.fill.scale.x=Math.max(0,e.hp/e.maxHp);bar.userData.fill.position.x=-(1-e.hp/e.maxHp)*.36;bar.visible=e.hp<e.maxHp;continue;
       }
       if(e.kind==='drummer'){
@@ -344,7 +357,7 @@ function animate(now){
       const bar=enemyBars.get(e.id);bar.position.set(e.x,s*1.72+.24+hop,e.z);bar.quaternion.copy(camera.quaternion);bar.userData.fill.scale.x=Math.max(0,e.hp/e.maxHp);bar.userData.fill.position.x=-(1-e.hp/e.maxHp)*.36;bar.visible=e.hp<e.maxHp;
     }
   }
-  for(const t of game.towers){const o=towerModels.get(t.id);if(!o)continue;if(t.type==='top'){updateTopView(o,t,game,dt,reducedMotion.matches);}else{updateGramophoneView(o,t,game,clock,dt,Math.atan2(camera.position.x,camera.position.z)+.12,reducedMotion.matches);}}
+  for(const t of game.towers){const o=towerModels.get(t.id);if(!o)continue;if(t.type==='top'){updateTopView(o,t,game,dt,reducedMotion.matches);}else{updateGramophoneView(o,t,game,clock,dt,Math.atan2(audiencePosition.x,audiencePosition.z)+.12,reducedMotion.matches);}}
   for(let i=effects.length-1;i>=0;i--){const p=effects[i];if(game.phase==='paused')continue;p.life-=dt;if(p.ring){p.mesh.scale.setScalar(p.r*(1-p.life/p.maxLife));p.mesh.material.opacity=.28*p.life/p.maxLife;}else{p.vy-=dt*8;p.mesh.position.x+=p.vx*dt;p.mesh.position.z+=p.vz*dt;p.mesh.position.y+=p.vy*dt;p.mesh.scale.setScalar(Math.min(1,p.life*3));}if(p.life<=0){scene.remove(p.mesh);p.mesh.material.dispose();effects.splice(i,1);}}
   // Reuse a small pool of top projectiles; their positions come directly from simulation.
   while(projectileModels.length<game.shots.length){const o=createTopProjectile(topProto);scene.add(o);projectileModels.push(o);}
@@ -369,7 +382,7 @@ function animate(now){
   lightSpot.intensity=92+Math.sin(clock*7)*6;lanternGlow.intensity=8+Math.sin(clock*11)*.35;
   presentation?.update(game,clock,dt,camera);stageLook?.update(clock,game.wave,game.phase==='paused'?priorPhase:game.phase);nightView.update(game,clock);
   updateUI();renderer.render(scene,camera);
-  window.__GAME__={view:{turn:Math.round(theatreView.yaw*180/Math.PI),zoom:Number(theatreView.zoom.toFixed(3))},frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,drummerKills:game.drummerKills,drumBeats:game.drumBeats,drummers:game.enemies.filter(e=>e.kind==='drummer').map(e=>({id:e.id,x:e.x,z:e.z,windup:e.drumClock<=1.1,asleep:e.sleep>0})),marching:game.enemies.filter(e=>e.march>0).length,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch,range:towerRange(game,t)})),topViews:game.towers.filter(t=>t.type==='top').map(t=>{const v=towerModels.get(t.id)?.userData.top;return {slot:t.slot,branch:t.branch,attacks:v?.attacks,recoil:v?.recoil,flash:v?.flash};}),projectiles:game.shots.length,projectileTrails:projectileModels.filter(o=>o.visible&&o.userData.projectile.trail.visible).length,gramophones:game.towers.filter(t=>t.type==='music').map(t=>{const v=towerModels.get(t.id)?.userData.gramophone;return {slot:t.slot,branch:t.branch,turn:v?.turn,yaw:v?.yaw,playing:v?.playing};}),lightRadius:LIGHT_RADIUS,nightGifts:{...game.nightGifts},giftOffer:game.giftOffer,giftHistory:game.giftHistory,encoreBursts:game.encoreBursts,ghostlightsCreated:game.ghostlightsCreated,ghostlights:game.ghostlights.map(p=>({x:p.x,z:p.z,radius:p.radius,life:p.life}))};
+  window.__GAME__={view:{turn:Math.round(theatreView.yaw*180/Math.PI),elevation:Math.round(theatreView.elevation*180/Math.PI),zoom:Number(theatreView.zoom.toFixed(3))},frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,drummerKills:game.drummerKills,drumBeats:game.drumBeats,drummers:game.enemies.filter(e=>e.kind==='drummer').map(e=>({id:e.id,x:e.x,z:e.z,windup:e.drumClock<=1.1,asleep:e.sleep>0})),marching:game.enemies.filter(e=>e.march>0).length,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch,range:towerRange(game,t)})),topViews:game.towers.filter(t=>t.type==='top').map(t=>{const v=towerModels.get(t.id)?.userData.top;return {slot:t.slot,branch:t.branch,attacks:v?.attacks,recoil:v?.recoil,flash:v?.flash};}),projectiles:game.shots.length,projectileTrails:projectileModels.filter(o=>o.visible&&o.userData.projectile.trail.visible).length,gramophones:game.towers.filter(t=>t.type==='music').map(t=>{const v=towerModels.get(t.id)?.userData.gramophone;return {slot:t.slot,branch:t.branch,turn:v?.turn,yaw:v?.yaw,playing:v?.playing};}),lightRadius:LIGHT_RADIUS,nightGifts:{...game.nightGifts},giftOffer:game.giftOffer,giftHistory:game.giftHistory,encoreBursts:game.encoreBursts,ghostlightsCreated:game.ghostlightsCreated,ghostlights:game.ghostlights.map(p=>({x:p.x,z:p.z,radius:p.radius,life:p.life}))};
   if(frame%15===0){$('stage').dataset.telemetry=JSON.stringify(window.__GAME__);}
 }
 const projectileModels=[];
