@@ -204,3 +204,6 @@ body:has(#ghost-cue:not([hidden])) #toast{top:216px}
 .camera-bottom{margin:4px 0 0}.camera-bottom #camera-reset{flex:1;font-size:13px!important}
 #camera-panel p{font-size:12px;line-height:1.45;color:var(--muted);margin:7px 0 0}
 @media(max-width:600px) and (orientation:portrait){.ghost-cue{left:auto;right:12px;max-width:calc(100% - 84px);transform:none}}
+
+/* Recorded score choice uses the same quiet controls as the sound levels. */
+#music-track{width:100%;min-height:44px;margin:4px 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:#162127;color:var(--cream);font:inherit;font-size:14px}#music-track:focus-visible{outline:2px solid var(--cream);outline-offset:2px}

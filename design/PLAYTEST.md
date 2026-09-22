@@ -307,3 +307,12 @@ View now has continuous 360-degree rotation and an 18–85-degree elevation rang
 The scenic wall and entrance fade to a cutaway from behind. Gramophones and paper ghosts keep their orientation toward the stage audience as the viewer orbits, exposing their actual side/back geometry. Empty brass sockets take priority over overlapping transparent toy hit boxes, which became noticeable at low elevations.
 
 Validation: 65 passing tests, including seam crossing, repeated circles, elevation limits, reset after orientation changes, touch tilt/pinch arbitration, and mouse tilt. Browser checked at 1280×720, 390×844 and 844×390, including low rear/side views, overhead, slider/button operation, panel fit, and correct Socket 1 selection where the gramophone hit area previously intercepted it. Ghost poses checked for finite transforms in both audience layouts. Phone tests use browser viewport sizes, not a physical iPhone.
+
+
+## Recorded score audition — 2026-09-22
+
+Replaced the repeating oscillator music with two original Atlas recordings: Velvet Lullaby (default) and Clockwork Waltz, selected in the pause menu. Both run for 90 seconds and use three-second overlapping loop fades. Existing toy effects and separate volume controls remain. Playback preserves its position on pause, mute, and backgrounding; wave transitions and game speed do not restart or accelerate the recording. Only the selected score is fetched and decoded.
+
+Validation: all 69 tests pass, including a simulated 15-minute score session, bounded overlap sources, pause/resume, deferred track loading, failed-load retry, stale-load cancellation, preference migration, and existing toy effects. All eight asset checks pass; the standalone game folder is 7.88 MB with both MP3s. Neither decoded recording contains clipped samples; measured signal levels and provenance are in CHAMBER-SCORE.md.
+
+Browser checks: both recordings loaded and reached active playback after a user gesture; pause cleared playback sources and retained the playhead; selecting the alternate score while paused loaded it on resume; the selected score survived reload. Sound controls fit 390×844 portrait and 844×390 landscape, with no browser warnings or errors observed. Restored the local audition to Velvet Lullaby with sound muted. These checks validate browser behavior and layout, not physical iPhone playback or subjective long-session comfort; the user still needs to audition both recordings.
