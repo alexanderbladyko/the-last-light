@@ -43,7 +43,7 @@ test('a player gesture loads one local recording; repeat unlock and restart neve
   const f=setup();assert.equal(f.created(),0);assert.equal(f.requests.length,0);
   await start(f);await f.audio.unlock();
   assert.equal(f.created(),1);assert.equal(f.context.decoded,1);assert.equal(f.requests.length,1);
-  assert.ok(f.requests[0].url.endsWith('/music/velvet-lullaby-v1.mp3'));
+  assert.ok(f.requests[0].url.endsWith('/music/clockwork-waltz-v1.mp3'));
   assert.equal(f.context.oscillators.length,0,'recorded music must not retain the old synth beds');
   assert.equal(f.audio.score.voices.size,1);assert.equal(f.timers.size,1);
   f.audio.restart();await f.audio.unlock();assert.equal(f.audio.score.voices.size,1);assert.equal(f.context.decoded,1);
@@ -87,26 +87,26 @@ test('mute and music-zero stop music; independent effects and saved choices rema
   const count=f.context.oscillators.length;f.audio.sound();assert.equal(f.context.oscillators.length,count);
   f.audio.setPreference('effects',0);f.audio.setPreference('muted',false);await flush();f.audio.sound();
   assert.equal(f.context.oscillators.length,count);assert.equal(f.audio.score.voices.size,1);
-  f.audio.setPreference('track','waltz');await flush();
-  assert.deepEqual(setup({storage}).audio.preferences,{music:.3,effects:0,muted:false,track:'waltz'});
+  f.audio.setPreference('track','lullaby');await flush();
+  assert.deepEqual(setup({storage}).audio.preferences,{music:.3,effects:0,muted:false,track:'lullaby'});
 });
 test('changing score while paused loads only the chosen file on resume',async()=>{
-  const f=setup();await start(f);f.audio.setScene('paused');f.audio.setPreference('track','waltz');
+  const f=setup();await start(f);f.audio.setScene('paused');f.audio.setPreference('track','lullaby');
   assert.equal(f.requests.length,1);assert.equal(f.audio.score.buffer,null);
   f.audio.setScene('build');await f.audio.unlock();assert.equal(f.requests.length,2);
-  assert.ok(f.requests[1].url.endsWith('/music/clockwork-waltz-v1.mp3'));assert.equal(f.audio.score.voices.size,1);
-  assert.equal([...f.audio.score.voices][0].gain,MUSIC_TRACKS.waltz.gain);
+  assert.ok(f.requests[1].url.endsWith('/music/velvet-lullaby-v1.mp3'));assert.equal(f.audio.score.voices.size,1);
+  assert.equal([...f.audio.score.voices][0].gain,MUSIC_TRACKS.lullaby.gain);
 });
 test('a late download cannot start music after pause or replace a newly selected score',async()=>{
   const pending=[];const f=setup({fetchAudio:(url,{signal})=>new Promise(resolve=>pending.push({url,signal,resolve}))});
   const loading=start(f);await flush();f.audio.setScene('paused');
   pending[0].resolve({ok:true,arrayBuffer:async()=> 'old'});await loading;
   assert.equal(f.audio.score.voices.size,0);assert.equal(f.context.state,'suspended');
-  f.audio.setPreference('track','waltz');f.audio.setScene('build');await flush();
-  f.audio.setPreference('track','lullaby');await flush();assert.equal(pending[1].signal.aborted,true);
+  f.audio.setPreference('track','lullaby');f.audio.setScene('build');await flush();
+  f.audio.setPreference('track','waltz');await flush();assert.equal(pending[1].signal.aborted,true);
   pending[2].resolve({ok:true,arrayBuffer:async()=> 'new'});await flush();
   pending[1].resolve({ok:true,arrayBuffer:async()=> 'stale'});await flush();
-  assert.equal(f.audio.score.buffer.identity,'new');assert.equal(f.audio.score.track,'lullaby');assert.equal(f.audio.score.voices.size,1);
+  assert.equal(f.audio.score.buffer.identity,'new');assert.equal(f.audio.score.track,'waltz');assert.equal(f.audio.score.voices.size,1);
 });
 test('load failure leaves toy effects playable, reports an error, and allows a deliberate retry',async()=>{
   let fail=true,calls=0;const f=setup({fetchAudio:async()=>{calls++;return {ok:!fail,arrayBuffer:async()=> 'recording'};}});
@@ -136,8 +136,8 @@ test('blocked browser activation can retry; unavailable audio and private storag
 });
 test('old saved audio levels migrate without losing preferences; invalid track identifiers are ignored',()=>{
   const f=setup({storage:{getItem:()=>JSON.stringify({music:.34,effects:.44,muted:true,track:'toString'})}});
-  assert.deepEqual(f.audio.preferences,{music:.34,effects:.44,muted:true,track:'lullaby'});
-  f.audio.setPreference('track','missing');assert.equal(f.audio.preferences.track,'lullaby');
+  assert.deepEqual(f.audio.preferences,{music:.34,effects:.44,muted:true,track:'waltz'});
+  f.audio.setPreference('track','missing');assert.equal(f.audio.preferences.track,'waltz');
 });
 test('effect voices retain their short envelopes, cleanup, and burst cap',async()=>{
   const f=setup();await start(f);for(let i=0;i<100;i++)f.audio.chime(784);

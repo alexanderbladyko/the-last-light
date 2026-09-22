@@ -8,7 +8,7 @@ export class TheatreAudio{
     clearTimer=timer=>clearInterval(timer),onChange=()=>{}}={}){
     Object.assign(this,{contextFactory,fetchAudio,storage,setTimer,clearTimer,onChange});
     this.phase='intro';this.wave=0;this.hidden=false;this.context=null;this.timer=null;this.voices=new Set();this.score=null;
-    this.preferences={music:.7,effects:.8,muted:false,track:'lullaby'};this.status='ready';
+    this.preferences={music:.7,effects:.8,muted:false,track:'waltz'};this.status='ready';
     try{
       const saved=JSON.parse(storage?.getItem('the-last-light-audio-v1')||'null');
       if(saved){

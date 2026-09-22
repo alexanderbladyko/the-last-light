@@ -6,7 +6,7 @@ const clamp=n=>Math.max(0,Math.min(1,n));
 
 // One decoded recording, shared by at most two sources across a loop seam.
 export class RecordedScore{
-  constructor(context,bus,{loadBuffer,track='lullaby',onChange=()=>{}}){
+  constructor(context,bus,{loadBuffer,track='waltz',onChange=()=>{}}){
     Object.assign(this,{context,bus,loadBuffer,onChange,track});
     this.voices=new Set();this.buffer=null;this.pending=null;this.generation=0;
     this.active=false;this.ending=false;this.offset=0;this.nextTime=null;this.status='ready';

@@ -32,7 +32,7 @@ Both private Atlas generations completed successfully using Stable Audio 3, conf
 
 ## First in-game audition
 
-Velvet Lullaby is the default; Clockwork Waltz is available under Pause → Score. Both are original 90-second, 44.1 kHz stereo MP3 recordings at 192 kbps (2,174,782 bytes each). These are initial recorded cues, not the proposed longer theme variations. The generated results favor piano; the initial brief's cello/vocal instrumentation is not a verified description of the finished audio.
+Clockwork Waltz is the default; Velvet Lullaby is available under Pause → Score. Previously saved track choices are preserved. Both are original 90-second, 44.1 kHz stereo MP3 recordings at 192 kbps (2,174,782 bytes each). These are initial recorded cues, not the proposed longer theme variations. The generated results favor piano; the initial brief's cello/vocal instrumentation is not a verified description of the finished audio.
 
 The procedural score, detuned beds, and synthetic music reverb are removed. Toy effects keep their existing separate volume and sounds. Each recording is fetched locally and decoded only when selected and enabled, with one decoded buffer retained; two playback sources share it briefly across a three-second loop transition. A decoded 90-second stereo cue uses roughly 32 MB at 44.1 kHz; changing tracks discards the old buffer. Pause/mute preserve the musical position, restart resets it, and endings fade out over at most six seconds. Music timing is independent of game speed.
 
