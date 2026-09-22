@@ -281,3 +281,12 @@ inspected the final models at 390 × 844 and 844 × 390. Live combat showed
 target-following horn motion. 63 existing tests pass; direct geometry/view
 checks cover pause and cleanup. No simulation changes. See GRAMOPHONE.md for
 measurements and limitations. Physical iPhone performance remains unmeasured.
+
+
+## Spinning-top visual pass — September 22
+
+The base, Bowling and Wide Orbit now have distinct physical silhouettes.
+Normal UI playtests cleared the opening hour with each upgrade (14 Bowling
+launches / 40 Orbit sweeps). Checked phone landscape and portrait, including
+the upgrade panel. The 63 existing tests pass; direct view checks cover real
+attack notifications, pause, trail pooling and cleanup. See SPINNING-TOPS.md.

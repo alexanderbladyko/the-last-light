@@ -54,7 +54,7 @@ function glowTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-export function createPresentation(scene, topProto) {
+export function createPresentation(scene) {
   const decor = new THREE.Group(), fx = [], accents = new Map(), sleepers = new Map(), tethers = new Map();
   const glowMap = glowTexture();
   const brass = new THREE.MeshStandardMaterial({color:'#bd9355', metalness:.6, roughness:.46});
@@ -122,15 +122,7 @@ export function createPresentation(scene, topProto) {
   function towerAccent(t) {
     let a=accents.get(t.id);if(a?.branch===t.branch)return a;
     clearTower(t.id);const root=new THREE.Group();const [x,z]=SOCKETS[t.slot];root.position.set(x,.2,z);scene.add(root);
-    a={root,branch:t.branch,orbs:[],lastNote:-1};accents.set(t.id,a);
-    if(t.branch==='orbit') {
-      for(let i=0;i<2;i++){const toy=topProto.clone(true);toy.scale.setScalar(.35);toy.traverse(o=>o.userData.shared=true);root.add(toy);a.orbs.push(toy);}
-      const track=add(new THREE.TorusGeometry(1.38,.012,4,64),new THREE.MeshBasicMaterial({color:'#80cdbc',transparent:true,opacity:.24}),0,.025,0,root);track.rotation.x=Math.PI/2;
-    } else if(t.branch==='bowling') {
-      for(let i=0;i<3;i++) {
-        const chevron=new THREE.Group();for(const s of [-1,1]){const bar=add(new THREE.BoxGeometry(.035,.025,.25),brass.clone(),s*.08,.035,.7+i*.18,chevron);bar.rotation.y=-s*.55;}root.add(chevron);
-      }
-    }
+    a={root,branch:t.branch,lastNote:-1};accents.set(t.id,a);
     return a;
   }
   function pop(e) {
@@ -168,7 +160,6 @@ export function createPresentation(scene, topProto) {
     for(const id of accents.keys())if(!game.towers.some(t=>t.id===id))clearTower(id);
     for(const t of game.towers) {
       const a=towerAccent(t),lit=onLight(game,{x:a.root.position.x,z:a.root.position.z});
-      a.orbs.forEach((o,i)=>{const angle=clock*3.8+i*Math.PI;o.position.set(Math.sin(angle)*1.38,.12+Math.sin(clock*6+i)*.06,Math.cos(angle)*1.38);o.rotation.y=-clock*14;});
       const beat=Math.floor(clock*(lit?2.1:1.15));
       if(t.type==='music'&&game.phase==='wave'&&a.lastNote!==beat){a.lastNote=beat;note(a.root.position.x,a.root.position.z,t.branch==='lullaby'?'#a5d7f0':t.branch==='invitation'?'#e4bc88':'#8dcabd');}
     }

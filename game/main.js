@@ -9,6 +9,7 @@ import {dressToys} from './toy-look.js';
 import {stageReflections} from './reflections.js';
 import {createTheatreView,createBoardGesture,MAX_TURN,MIN_ZOOM,MAX_ZOOM} from './theatre-view.js';
 import {createDrummerView,updateDrummerView,disposeDrummerView} from './drummer-view.js';
+import {createTopView,updateTopView,triggerTopAttack,disposeTopView,createTopProjectile,updateTopProjectile} from './top-view.js';
 import {createGramophoneView,updateGramophoneView,disposeGramophoneView} from './gramophone-view.js';
 import {createGhostView,updateGhostView,disposeGhostView} from './ghost-view.js';
 import {PATH,SOCKETS,COST,UPGRADE_COST,LIGHT_RADIUS,PATH_LENGTH,pointAt,createGame,startGame,beginWave,buildTower,upgradeTower,sellTower,moveLantern,stepGame,onLight,waveInfo,chooseNightGift,towerRange} from './sim.js';
@@ -203,8 +204,8 @@ function updateSelection(){
   const [x,z]=SOCKETS[slot];rangeRing.position.set(x,.07,z);const r=t?towerRange(game,t):1;rangeRing.scale.setScalar(r/2.65);rangeRing.visible=!!t;
 }
 function syncTowers(){
-  for(const [id,o]of towerModels)if(!game.towers.some(t=>t.id===id)){disposeGramophoneView(o);scene.remove(o);towerModels.delete(id);}
-  for(const t of game.towers){if(towerModels.has(t.id))continue;const o=t.type==='top'?topProto.clone(true):createGramophoneView(musicProto);const [x,z]=SOCKETS[t.slot];o.position.set(x,.18,z);o.rotation.y=t.type==='music'?.35:0;scene.add(o);towerModels.set(t.id,o);}
+  for(const [id,o]of towerModels)if(!game.towers.some(t=>t.id===id)){disposeGramophoneView(o);disposeTopView(o);scene.remove(o);towerModels.delete(id);}
+  for(const t of game.towers){if(towerModels.has(t.id))continue;const o=t.type==='top'?createTopView(topProto):createGramophoneView(musicProto);const [x,z]=SOCKETS[t.slot];o.position.set(x,.18,z);o.rotation.y=t.type==='music'?.35:0;scene.add(o);towerModels.set(t.id,o);}
 }
 function updateUI(force=false){
   const ghosts=game.enemies.filter(e=>e.kind==='ghost'),litGhosts=ghosts.filter(e=>onLight(game,e)).length;
@@ -238,7 +239,7 @@ function start(){startGame(game);audio.setScene(game.phase,game.wave);void audio
 function restart(){
   theatreView.reset();boardGesture.cancel();setViewPanel(false);
   presentation?.reset();nightView.reset();$('night-offer').hidden=true;dawnProgress=0;
-  for(const o of enemyModels.values()){disposeGhostView(o);disposeDrummerView(o);scene.remove(o);}enemyModels.clear();for(const o of enemyBars.values())scene.remove(o);enemyBars.clear();for(const o of towerModels.values()){disposeGramophoneView(o);scene.remove(o);}towerModels.clear();for(const p of effects){scene.remove(p.mesh);p.mesh.material.dispose();}effects.length=0;
+  for(const o of enemyModels.values()){disposeGhostView(o);disposeDrummerView(o);scene.remove(o);}enemyModels.clear();for(const o of enemyBars.values())scene.remove(o);enemyBars.clear();for(const o of towerModels.values()){disposeGramophoneView(o);disposeTopView(o);scene.remove(o);}towerModels.clear();for(const p of effects){scene.remove(p.mesh);p.mesh.material.dispose();}effects.length=0;
   game=createGame();startGame(game);audio.restart();selected=null;keys.clear();stickInput={x:0,z:0};accumulator=0;scene.background.copy(nightColor);ambient.intensity=.88;$('ending').hidden=true;$('pause-screen').hidden=true;$('selection').hidden=true;rangeRing.visible=false;syncTowers();updateUI(true);notify('A new night. Another chance.');
 }
 function togglePause(){boardGesture.cancel();$('night-offer').hidden=true;if(game.phase==='paused'){game.phase=priorPhase;$('pause-screen').hidden=true;lastTime=performance.now();}else if(['wave','build'].includes(game.phase)){priorPhase=game.phase;game.phase='paused';keys.clear();stickInput={x:0,z:0};$('pause-screen').hidden=false;$('resume').focus();}dragging=false;$('stick-knob').style.transform='';audio.setScene(game.phase,game.wave);updateUI(true);}
@@ -297,7 +298,7 @@ function processEvents(){
     if(e.type==='encore'){pulse(e.x,e.z,e.r,'#ccaff2');emit(e.x,e.z,9,'#ccaff2');sound(262,.3,'sine',.023);}
     if(e.type==='ghostlight')pulse(e.x,e.z,e.r,'#9bdbd8');
     if(e.type==='gift'){chime(523,.022);notify(`${giftInfo(e.id,e.rank).name} ${rankMark(e.rank)} is yours for the night.`);}
-    if(e.type==='spin')pulse(e.x,e.z,e.r,'#9bdbbd');
+    if(e.type==='spin'||e.type==='launch')triggerTopAttack(towerModels.get(e.towerId),e);
     if(e.type==='pop'){presentation?.pop(e);emit(e.x,e.z,6,e.kind==='drummer'?'#efbb68':e.kind==='ghost'?'#e5ddff':e.tier?'#b880a4':'#e7c881');sound(e.kind==='drummer'?165:e.kind==='ghost'?1175:e.tier?330:990,.09,'triangle',.013);}
     if(e.type==='leak'){emit(e.x,e.z,10,'#e47d66');sound(110,.25,'triangle',.04);notify(e.kind==='ghost'?'A ghost slipped past. Keep it lit near a spinning top.':'A toy reached the last light.');}
     if(e.type==='sleep'){chime(784,.009);pulse(e.x,e.z,.7,'#96b7e1');}
@@ -340,21 +341,21 @@ function animate(now){
       const bar=enemyBars.get(e.id);bar.position.set(e.x,s*1.72+.24+hop,e.z);bar.quaternion.copy(camera.quaternion);bar.userData.fill.scale.x=Math.max(0,e.hp/e.maxHp);bar.userData.fill.position.x=-(1-e.hp/e.maxHp)*.36;bar.visible=e.hp<e.maxHp;
     }
   }
-  for(const t of game.towers){const o=towerModels.get(t.id);if(!o)continue;const lit=onLight(game,{x:o.position.x,z:o.position.z});if(t.type==='top'){o.rotation.y=clock*(lit?12:6)*(giftInfo('overwound',game.nightGifts.overwound)?.rate??1);o.rotation.z=Math.sin(clock*5)*.035;o.scale.setScalar(t.branch==='orbit'?1.2:1.12);if(t.branch==='bowling')o.rotation.x=Math.sin(clock*3)*.08;}else{updateGramophoneView(o,t,game,clock,dt,Math.atan2(camera.position.x,camera.position.z)+.12,reducedMotion.matches);}}
+  for(const t of game.towers){const o=towerModels.get(t.id);if(!o)continue;if(t.type==='top'){updateTopView(o,t,game,dt,reducedMotion.matches);}else{updateGramophoneView(o,t,game,clock,dt,Math.atan2(camera.position.x,camera.position.z)+.12,reducedMotion.matches);}}
   for(let i=effects.length-1;i>=0;i--){const p=effects[i];if(game.phase==='paused')continue;p.life-=dt;if(p.ring){p.mesh.scale.setScalar(p.r*(1-p.life/p.maxLife));p.mesh.material.opacity=.28*p.life/p.maxLife;}else{p.vy-=dt*8;p.mesh.position.x+=p.vx*dt;p.mesh.position.z+=p.vz*dt;p.mesh.position.y+=p.vy*dt;p.mesh.scale.setScalar(Math.min(1,p.life*3));}if(p.life<=0){scene.remove(p.mesh);p.mesh.material.dispose();effects.splice(i,1);}}
   // Reuse a small pool of top projectiles; their positions come directly from simulation.
-  while(projectileModels.length<game.shots.length){const o=topProto.clone(true);o.scale.setScalar(.6);scene.add(o);projectileModels.push(o);}
-  projectileModels.forEach((o,i)=>{const s=game.shots[i];o.visible=!!s;if(s){o.position.set(s.x,.2,s.z);o.rotation.y=clock*18;}});
+  while(projectileModels.length<game.shots.length){const o=createTopProjectile(topProto);scene.add(o);projectileModels.push(o);}
+  projectileModels.forEach((o,i)=>updateTopProjectile(o,game.phase==='wave'||game.phase==='paused'&&priorPhase==='wave'?game.shots[i]:null,clock,reducedMotion.matches));
   [...$('socket-labels').children].forEach((b,i)=>{
     const [x,z]=SOCKETS[i],tower=game.towers.find(t=>t.slot===i);
     proj.set(x,.11,z).project(camera);const baseY=(-proj.y*.5+.5)*stageHeight;
     b.style.left=`${(proj.x*.5+.5)*stageWidth}px`;
     if(tower){
       // The whole toy is tappable; no badge hides its face or horn.
-      proj.set(x,tower.type==='top'?1.98:3.2,z).project(camera);
+      proj.set(x,tower.type==='top'?2.25:3.2,z).project(camera);
       const topY=(-proj.y*.5+.5)*stageHeight;
       b.style.top=`${(baseY+topY)/2}px`;b.style.height=`${Math.max(48,baseY-topY+16)}px`;
-      b.style.width=`${Math.max(48,(tower.type==='music'?(tower.branch==='invitation'?2.6:2.2):1.8)*stageWidth/(camera.right-camera.left))}px`;
+      b.style.width=`${Math.max(48,(tower.type==='music'?(tower.branch==='invitation'?2.6:2.2):(tower.branch==='orbit'?2.5:2.05))*stageWidth/(camera.right-camera.left))}px`;
     }else{b.style.top=`${baseY}px`;b.style.height='';b.style.width='';}
     socketRings[i].material.opacity=selected===i?.85:0;
   });
@@ -365,7 +366,7 @@ function animate(now){
   lightSpot.intensity=92+Math.sin(clock*7)*6;lanternGlow.intensity=8+Math.sin(clock*11)*.35;
   presentation?.update(game,clock,dt,camera);stageLook?.update(clock,game.wave,game.phase==='paused'?priorPhase:game.phase);nightView.update(game,clock);
   updateUI();renderer.render(scene,camera);
-  window.__GAME__={view:{turn:Math.round(theatreView.yaw*180/Math.PI),zoom:Number(theatreView.zoom.toFixed(3))},frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,drummerKills:game.drummerKills,drumBeats:game.drumBeats,drummers:game.enemies.filter(e=>e.kind==='drummer').map(e=>({id:e.id,x:e.x,z:e.z,windup:e.drumClock<=1.1,asleep:e.sleep>0})),marching:game.enemies.filter(e=>e.march>0).length,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch,range:towerRange(game,t)})),gramophones:game.towers.filter(t=>t.type==='music').map(t=>{const v=towerModels.get(t.id)?.userData.gramophone;return {slot:t.slot,branch:t.branch,turn:v?.turn,yaw:v?.yaw,playing:v?.playing};}),lightRadius:LIGHT_RADIUS,nightGifts:{...game.nightGifts},giftOffer:game.giftOffer,giftHistory:game.giftHistory,encoreBursts:game.encoreBursts,ghostlightsCreated:game.ghostlightsCreated,ghostlights:game.ghostlights.map(p=>({x:p.x,z:p.z,radius:p.radius,life:p.life}))};
+  window.__GAME__={view:{turn:Math.round(theatreView.yaw*180/Math.PI),zoom:Number(theatreView.zoom.toFixed(3))},frame,fps:Math.round(fps),pos:[game.lantern.x,game.lantern.z],speed:game.lantern.speed,score:game.kills,over:game.phase==='won'||game.phase==='lost',draws:renderer.info.render.calls,tris:renderer.info.render.triangles,phase:game.phase,wave:game.wave,lives:game.lives,coins:game.coins,enemies:game.enemies.length,ghosts:game.enemies.filter(e=>e.kind==='ghost').length,exposedGhosts:game.enemies.filter(e=>e.kind==='ghost'&&onLight(game,e)).length,ghostKills:game.ghostKills,drummerKills:game.drummerKills,drumBeats:game.drumBeats,drummers:game.enemies.filter(e=>e.kind==='drummer').map(e=>({id:e.id,x:e.x,z:e.z,windup:e.drumClock<=1.1,asleep:e.sleep>0})),marching:game.enemies.filter(e=>e.march>0).length,towers:game.towers.map(t=>({slot:t.slot,type:t.type,branch:t.branch,range:towerRange(game,t)})),topViews:game.towers.filter(t=>t.type==='top').map(t=>{const v=towerModels.get(t.id)?.userData.top;return {slot:t.slot,branch:t.branch,attacks:v?.attacks,recoil:v?.recoil,flash:v?.flash};}),projectiles:game.shots.length,projectileTrails:projectileModels.filter(o=>o.visible&&o.userData.projectile.trail.visible).length,gramophones:game.towers.filter(t=>t.type==='music').map(t=>{const v=towerModels.get(t.id)?.userData.gramophone;return {slot:t.slot,branch:t.branch,turn:v?.turn,yaw:v?.yaw,playing:v?.playing};}),lightRadius:LIGHT_RADIUS,nightGifts:{...game.nightGifts},giftOffer:game.giftOffer,giftHistory:game.giftHistory,encoreBursts:game.encoreBursts,ghostlightsCreated:game.ghostlightsCreated,ghostlights:game.ghostlights.map(p=>({x:p.x,z:p.z,radius:p.radius,life:p.life}))};
   if(frame%15===0){$('stage').dataset.telemetry=JSON.stringify(window.__GAME__);}
 }
 const projectileModels=[];
@@ -376,6 +377,6 @@ try {
   resize();
   loaded.forEach(handmade);ghostProto=loaded[5];drummerProto=loaded[6];
   const stage=loaded[0];stage.position.y=-1.3;scene.add(stage);[dollProto,topProto,musicProto]=loaded.slice(1,4);lantern=loaded[4];scene.add(lantern);goalLantern=lantern.clone(true);goalLantern.scale.setScalar(1.4);goalLantern.position.set(8,.12,3.6);scene.add(goalLantern);
-  presentation=createPresentation(scene,topProto);
+  presentation=createPresentation(scene);
   syncTowers();$('startb').disabled=false;$('startb').textContent='Raise the curtain →';$('startb').focus();window.__READY__=true;window.__START__=start;requestAnimationFrame(animate);
 }catch(error){$('fatal').hidden=false;$('fatal').textContent=`The playhouse could not open: ${error.message}. Reload to try again.`;console.error(error);}

@@ -144,10 +144,10 @@ export function stepGame(g,dt){
     if(!targets.length||t.charge>0)continue;
     if(t.branch==='bowling'){
       const e=targets[0],vx=e.x-x,vz=e.z-z,d=Math.hypot(vx,vz)||1;
-      g.shots.push({x,z,vx:vx/d*10,vz:vz/d*10,life:.7*(winding?.reach??1),hit:new Set()});t.charge=1.25;
+      g.shots.push({x,z,vx:vx/d*10,vz:vz/d*10,life:.7*(winding?.reach??1),hit:new Set()});t.charge=1.25;g.events.push({type:'launch',towerId:t.id,x,z,dx:vx/d,dz:vz/d});
     }else if(t.branch==='orbit'){
-      t.charge=.52;for(const e of targets)damageEnemy(g,e,2.8);g.events.push({type:'spin',x,z,r:range});
-    }else{t.charge=.48;for(const e of targets)damageEnemy(g,e,3.2);g.events.push({type:'spin',x,z,r:range});}
+      t.charge=.52;for(const e of targets)damageEnemy(g,e,2.8);g.events.push({type:'spin',towerId:t.id,x,z,r:range});
+    }else{t.charge=.48;for(const e of targets)damageEnemy(g,e,3.2);g.events.push({type:'spin',towerId:t.id,x,z,r:range});}
   }
   for(const s of g.shots){s.x+=s.vx*dt;s.z+=s.vz*dt;s.life-=dt;for(const e of g.enemies){if(!e.dead&&!s.hit.has(e.id)&&Math.hypot(e.x-s.x,e.z-s.z)<.85){if(damageEnemy(g,e,11))s.hit.add(e.id);}}}
   g.shots=g.shots.filter(s=>s.life>0);g.enemies=g.enemies.filter(e=>!e.dead);
