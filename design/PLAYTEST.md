@@ -290,3 +290,12 @@ Normal UI playtests cleared the opening hour with each upgrade (14 Bowling
 launches / 40 Orbit sweeps). Checked phone landscape and portrait, including
 the upgrade panel. The 63 existing tests pass; direct view checks cover real
 attack notifications, pause, trail pooling and cleanup. See SPINNING-TOPS.md.
+
+## Passive scenery — 2026-09-22
+
+Added three static backstage clusters: a slightly open lacquered toy chest, stacked A/B/C blocks, and a tipped wooden spool with a short ribbon curl. Geometry lives in `game/assets/props.js`; the scene bakes it once by material. No camera, route, tower, input, or simulation changes.
+
+- 7,692 triangles, eight merged meshes, no new texture downloads.
+- Floor clearance checked against the sampled route and six socket centers: nearest prop surface is 1.07 m beyond the runner edge; nearest socket center is 3.04 m away. All geometry rests on or above the board.
+- Visual checks in the local browser: desktop 1280×720; phone layouts 390×844 and 844×390; portrait right-turn limit and landscape left-turn limit during the first wave. The chest, blocks, and spool leave the playable route and build spots visible. Decorative ribbon can crop at the portrait edge; camera framing remains unchanged.
+- Browser console has no warnings/errors. `npm test`: 63 passing. `npm run check`: all eight asset modules pass, standalone game 3.53 MB. Phone checks are browser viewport checks, not a physical iPhone performance run.

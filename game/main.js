@@ -5,6 +5,7 @@ import {TheatreAudio} from './audio.js';
 import {ASSET,bakeStatic} from './assetlib.js';
 import {handmade,createPresentation} from './presentation.js';
 import {dressStage} from './stage-look.js';
+import generateStageProps from './assets/props.js';
 import {dressToys} from './toy-look.js';
 import {stageReflections} from './reflections.js';
 import {createTheatreView,createBoardGesture,MAX_TURN,MIN_ZOOM,MAX_ZOOM} from './theatre-view.js';
@@ -63,6 +64,8 @@ SOCKETS.forEach(([x,z],i)=>{
   const halo=mesh(new THREE.RingGeometry(.55,.585,48),new THREE.MeshBasicMaterial({color:'#e7c58c',transparent:true,opacity:0,side:THREE.DoubleSide}),x,.11,z);halo.rotation.x=-Math.PI/2;socketRings.push(halo);
   const button=document.createElement('button');button.className='socket';button.textContent=String(i+1);button.dataset.slot=i;button.setAttribute('aria-label',`Socket ${i+1}`);button.onclick=()=>{if(!boardGesture.blocksClick(performance.now()))selectSocket(i);};$('socket-labels').appendChild(button);
 });
+const stageProps=bakeStatic(generateStageProps(THREE));
+stageProps.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});handmade(stageProps);scene.add(stageProps);
 const stageFloor=bakeStatic(environment);stageFloor.traverse(o=>{if(o.isMesh)o.receiveShadow=true;});handmade(stageFloor);scene.add(stageFloor);
 const rangeRing=mesh(new THREE.RingGeometry(2.59,2.65,64),new THREE.MeshBasicMaterial({color:'#83c4b1',transparent:true,opacity:.35,side:THREE.DoubleSide}),0,.07,0);rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;
 const lightSpot=new THREE.SpotLight('#ffc079',92,18,Math.atan(LIGHT_RADIUS/7),.6,1.1);lightSpot.position.set(-1,7,0);lightSpot.target.position.set(-1,0,0);scene.add(lightSpot,lightSpot.target);
